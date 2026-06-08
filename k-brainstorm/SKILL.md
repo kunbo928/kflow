@@ -14,7 +14,7 @@ brainstorm 是"讨论层"统一入口。
 - **用决策树推进对话**——把问题拆成"先决策什么、后决策什么"的树，按依赖从上到下逐支澄清，直到形成共享理解
 - **AI 是思考伙伴不是记录员**——用户来这步是想被挑战、被启发，不是被一条条问题填表。如果只是把用户的话整理一遍写下来这步就白做了
 
-> 共享路径和命名约定看 `..kflow/reference/shared-conventions.md`。
+> 共享路径和命名约定看 `.kflow/reference/shared-conventions.md`。
 
 ---
 
@@ -25,9 +25,9 @@ brainstorm 是"讨论层"统一入口。
 | case | 规模 | 用户状态 | 产物 |
 |---|---|---|---|
 | **case 1：已经够清楚** | 不限 | 一句话能说清做什么 / 为谁 / 怎么算成功 / 不做什么 | 不落盘，直接 `k-feat-design` |
-| **case 2：小需求** | 单 feature | 知道要解决什么问题，对解法 / 边界还摇摆 | `..kflow/features/{feature}/{slug}-brainstorm.md` → `k-feat-design` |
+| **case 2：小需求** | 单 feature | 知道要解决什么问题，对解法 / 边界还摇摆 | `.kflow/features/{feature}/{slug}-brainstorm.md` → `k-feat-design` |
 | **case 3：大需求，拆解 ready** | 多 feature | 心里已有大致模块划分，想直接做拆解和接口契约 | 不落盘，移交 `k-roadmap` |
-| **case 4：大需求，先发散存档** | 多 feature | 还不想拆——想先深挖、发散、产生想法存着 | `..kflow/brainstorms/{slug}/brainstorm.md` → 之后 `k-roadmap` 读到 |
+| **case 4：大需求，先发散存档** | 多 feature | 还不想拆——想先深挖、发散、产生想法存着 | `.kflow/brainstorms/{slug}/brainstorm.md` → 之后 `k-roadmap` 读到 |
 
 判错 case 不是灾难——**允许升降级**。case 2 聊着发现范围越聊越大切 case 3/4，case 3 聊着发现需要先深挖切 case 4，case 4 深挖完可以直接拆切 case 3，当场切换出口。
 
@@ -35,7 +35,7 @@ brainstorm 是"讨论层"统一入口。
 
 每次都做：
 
-1. **扫一眼仓库**——先读 `..kflow/attention.md`；Glob `..kflow/` 发现 architecture / features / roadmap / brainstorms / compound / requirements，读架构总入口、看已有 feature 和 roadmap 和 brainstorm、搜 compound 看有没有相关坑（`--filter doc_type=learning`）；Grep 用户描述里的关键词防术语冲突。缺 attention.md 视为骨架不完整，不回退读外部 AI 入口
+1. **扫一眼仓库**——先读 `.kflow/attention.md`；Glob `.kflow/` 发现 architecture / features / roadmap / brainstorms / compound / requirements，读架构总入口、看已有 feature 和 roadmap 和 brainstorm、搜 compound 看有没有相关坑（`--filter doc_type=learning`）；Grep 用户描述里的关键词防术语冲突。缺 attention.md 视为骨架不完整，不回退读外部 AI 入口
 2. **是不是接续之前的工作**：
    - `features/` 下有名字相近的 brainstorm？`roadmap/` 下有相近子目录？`brainstorms/` 下有相关创意记录？
    - 没有 → 当新讨论
@@ -134,8 +134,8 @@ brainstorm 是"讨论层"统一入口。
 提议格式：**"这块靠想不准，我做个最小 demo 验一下 {要验的事}，5-10 分钟，OK 吗？"** 用户秒过 / 拒绝即可。
 
 **spike 落地约定**：
-- case 2：实验代码扔 `..kflow/features/{feature}/` 下（和 brainstorm note 同目录），文件随便起名（`spike.py` / `try-{topic}.ts`）
-- case 4：spike 放 `..kflow/brainstorms/{slug}/`，跟 brainstorm.md 挨着
+- case 2：实验代码扔 `.kflow/features/{feature}/` 下（和 brainstorm note 同目录），文件随便起名（`spike.py` / `try-{topic}.ts`）
+- case 4：spike 放 `.kflow/brainstorms/{slug}/`，跟 brainstorm.md 挨着
 - 验完不强制清理——留着以后看也行；用户嫌乱说一声再删
 - **结果必须回写 brainstorm note**——成败都要在"已敲定"那节记一条："{结论} —— 已用 spike 验证（代码见 `{路径}`）"，避免 design / roadmap 阶段再起疑重做
 
@@ -174,7 +174,7 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 - 聊着发现规模超出单 feature → "这规模超出单 feature，你想直接拆 roadmap 还是先深挖后存着？"→ case 3 或 case 4
 - 聊着发现已经全清楚 → case 1
 
-**落盘**：收敛完成后写 `..kflow/features/{feature}/{slug}-brainstorm.md`。
+**落盘**：收敛完成后写 `.kflow/features/{feature}/{slug}-brainstorm.md`。
 
 目录约定：
 - 日期前缀：从环境信息取今天日期
@@ -217,10 +217,10 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 
 **落盘**：用户说"先这样"/"差不多了"/"存一下"，或 AI 判断深挖已到 3-5 轮上限，主动说"这块我先帮你落到 brainstorms 里，之后 roadmap 会读到"。
 
-路径：`..kflow/brainstorms/{slug}/`
+路径：`.kflow/brainstorms/{slug}/`
 
 ```
-..kflow/brainstorms/{slug}/
+.kflow/brainstorms/{slug}/
 └── brainstorm.md    创意记录
 ```
 
@@ -232,7 +232,7 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 - 比 case 2 模板更自由——不要求"选定方向"，允许保留多个倾向
 - 不需要"考虑过的方向"那种结构化对比——那是 design 前的事，这里只是创意记录
 
-**和 roadmap 的衔接**：`k-roadmap` 启动时会搜 `..kflow/brainstorms/` 看有没有相关 brainstorm。如果有，roadmap 把 brainstorm 当输入材料读，不重复分诊直接拆。
+**和 roadmap 的衔接**：`k-roadmap` 启动时会搜 `.kflow/brainstorms/` 看有没有相关 brainstorm。如果有，roadmap 把 brainstorm 当输入材料读，不重复分诊直接拆。
 
 **退出**：落盘后告诉用户"想法存到 `{路径}` 了，准备好了就触发 `k-roadmap`，它会读到这份脑暴记录"。如果深挖过程中愿景（用户故事 / 痛点 / 边界）已经比较清楚了，提示用户可以先 `k-req draft` 把愿景落成 requirement，后续 roadmap 拆解和 design 都有稳定对齐基准
 

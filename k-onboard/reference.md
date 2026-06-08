@@ -2,7 +2,7 @@
 
 本文件提供 `k-onboard` 使用的骨架模板。
 
-## 1. `..kflow/architecture/ARCHITECTURE.md` 占位模板
+## 1. `.kflow/architecture/ARCHITECTURE.md` 占位模板
 
 ```markdown
 # {项目名} 架构总入口
@@ -21,7 +21,7 @@
 ## 5. 已知约束 / 硬边界
 ```
 
-## 2. `..kflow/attention.md` 最小模板
+## 2. `.kflow/attention.md` 最小模板
 
 attention.md 是 kflow 技能启动必读的项目注意事项入口。onboard 创建最小骨架，不替项目 owner 填实质内容；后续短规则由 `k-note` 追加。
 

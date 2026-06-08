@@ -7,7 +7,7 @@ description: 对仓库做定向代码探索并把"提问→读代码→得结论
 
 ## 启动必读
 
-开始任何判断或动作前，先读取 `..kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
+开始任何判断或动作前，先读取 `.kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
 
 同一个问题第一次花两小时查代码，第二次应该五分钟内找到答案——前提是第一次做完留下证据化的记录。k-explore 把"提问 → 读代码 → 得结论"沉淀成可检索的探索文档。
 
@@ -22,7 +22,7 @@ description: 对仓库做定向代码探索并把"提问→读代码→得结论
 
 本技能只负责"看到了什么"的证据化记录。用户意图是别的（拍板 / 处方 / 修 bug）让用户按场景选对应子技能。
 
-> 共享路径与命名约定看 `..kflow/reference/shared-conventions.md`。产物写入 `..kflow/compound/`，命名 `YYYY-MM-DD-explore-{slug}.md`，frontmatter 带 `doc_type: explore`。
+> 共享路径与命名约定看 `.kflow/reference/shared-conventions.md`。产物写入 `.kflow/compound/`，命名 `YYYY-MM-DD-explore-{slug}.md`，frontmatter 带 `doc_type: explore`。
 
 ---
 
@@ -87,7 +87,7 @@ frontmatter / 正文结构 / 各节写法说明和示例见同目录 `reference.
 
 ### Phase 4：归档
 
-- 新建：写入 `..kflow/compound/YYYY-MM-DD-explore-{slug}.md`，frontmatter 带 `doc_type: explore`
+- 新建：写入 `.kflow/compound/YYYY-MM-DD-explore-{slug}.md`，frontmatter 带 `doc_type: explore`
 - 更新：写回 Phase 1.5 定位的原文件 + `updated: YYYY-MM-DD`
 - supersede：按 `shared-conventions.md` §6 第 5 条；旧文档 `status: outdated` + `superseded-by`
 
@@ -99,16 +99,16 @@ frontmatter / 正文结构 / 各节写法说明和示例见同目录 `reference.
 
 ## 搜索工具
 
-> 完整语法见 `..kflow/reference/tools.md`。
+> 完整语法见 `.kflow/reference/tools.md`。
 
 ```bash
 # 按类型筛选
 
-python ..kflow/tools/search-yaml.py --dir ..kflow/compound --filter doc_type=explore --filter type=module-overview --filter status=active
+python .kflow/tools/search-yaml.py --dir .kflow/compound --filter doc_type=explore --filter type=module-overview --filter status=active
 
 # 归档后查重叠
 
-python ..kflow/tools/search-yaml.py --dir ..kflow/compound --filter doc_type=explore --query "{关键词}" --json
+python .kflow/tools/search-yaml.py --dir .kflow/compound --filter doc_type=explore --query "{关键词}" --json
 ```
 
 ---

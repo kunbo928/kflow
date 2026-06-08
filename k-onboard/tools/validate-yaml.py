@@ -11,20 +11,20 @@ Designed for AI agent use: structured output, exit code reflects pass/fail,
 no required external dependencies (falls back to builtin parser if PyYAML unavailable).
 
 Usage examples:
-  # Validate all .md files under codestable/features
-  python codestable/tools/validate-yaml.py --dir codestable/features
+  # Validate all .md files under .kflow/features
+  python .kflow/tools/validate-yaml.py --dir .kflow/features
 
   # Validate a single file
-  python codestable/tools/validate-yaml.py --file codestable/features/2026-04-11-auth/auth-design.md
+  python .kflow/tools/validate-yaml.py --file .kflow/features/2026-04-11-auth/auth-design.md
 
   # Check that required fields exist in frontmatter
-  python codestable/tools/validate-yaml.py --dir codestable/features --require doc_type --require status
+  python .kflow/tools/validate-yaml.py --dir .kflow/features --require doc_type --require status
 
   # JSON output for programmatic consumption
-  python codestable/tools/validate-yaml.py --dir docs/api --json
+  python .kflow/tools/validate-yaml.py --dir docs/api --json
 
   # Validate the libdoc manifest
-  python codestable/tools/validate-yaml.py --file docs/api/manifest.yaml --yaml-only
+  python .kflow/tools/validate-yaml.py --file docs/api/manifest.yaml --yaml-only
 """
 
 import argparse

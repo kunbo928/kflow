@@ -1,15 +1,15 @@
 ---
 name: k-req
-description: 维护 `..kflow/requirements/` 下的能力愿景文档。三种模式 draft / backfill / update。触发：design 阶段起草愿景、acceptance 阶段落档，或用户说"刷新 requirements"、"补一份 req"、"先把愿景写下来"。
+description: 维护 `.kflow/requirements/` 下的能力愿景文档。三种模式 draft / backfill / update。触发：design 阶段起草愿景、acceptance 阶段落档，或用户说"刷新 requirements"、"补一份 req"、"先把愿景写下来"。
 ---
 
 # k-req
 
 ## 启动必读
 
-开始任何判断或动作前，先读取 `..kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
+开始任何判断或动作前，先读取 `.kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
 
-`..kflow/requirements/` 是项目的"能力清单"——每份描述**一个能力因什么问题而产生、怎么解决、边界在哪**，写成人话非技术读者也能看懂。架构文档讲"怎么搭"，需求文档讲"为什么要有"。
+`.kflow/requirements/` 是项目的"能力清单"——每份描述**一个能力因什么问题而产生、怎么解决、边界在哪**，写成人话非技术读者也能看懂。架构文档讲"怎么搭"，需求文档讲"为什么要有"。
 
 **req 是系统的能力愿景层**——描述"用户需要什么、系统提供什么能力来满足"。三层时间深度用一个 `status` 字段区分：
 
@@ -32,7 +32,7 @@ description: 维护 `..kflow/requirements/` 下的能力愿景文档。三种模
 - 起花哨标题或用比喻——读者要读半段才知道这能力是什么
 - 把实现细节塞进来——"通过 XXX 服务调用 YYY 接口"
 
-> 共享路径与命名约定看 `..kflow/reference/shared-conventions.md`。一份样例看 `..kflow/reference/requirement-example.md`——起草前读一遍对齐语气。
+> 共享路径与命名约定看 `.kflow/reference/shared-conventions.md`。一份样例看 `.kflow/reference/requirement-example.md`——起草前读一遍对齐语气。
 
 ---
 
@@ -79,7 +79,7 @@ description: 维护 `..kflow/requirements/` 下的能力愿景文档。三种模
 
 **共同必读**：`VISION.md`（需求中心索引）+ `requirements/` 下其他 req（判断要不要互引、有没有重复）+ 用户素材（口述 / 产品想法 / 用户反馈 / 已有 feature 散落需求描述）。
 
-**按情况读**：可能承载这能力的 architecture doc（用于 `implemented_by`）；相关已有 feature 方案；compound 沉淀（`python ..kflow/tools/search-yaml.py --dir ..kflow/compound --query "{能力关键词}"`）。
+**按情况读**：可能承载这能力的 architecture doc（用于 `implemented_by`）；相关已有 feature 方案；compound 沉淀（`python .kflow/tools/search-yaml.py --dir .kflow/compound --query "{能力关键词}"`）。
 
 **draft 额外**：和 roadmap 对一眼——如果已经有 roadmap 提到了这个能力，读一下了解预期的拆解方向，但 req 本身不绑定 roadmap 条目。
 **update 额外**：当前文档全文 + `last_reviewed` 之后相关实现的变化（`git log` 粗扫 `implemented_by` 对应的代码模块）。

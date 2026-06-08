@@ -1,15 +1,15 @@
 ---
 name: k-arch
-description: 维护 `..kflow/architecture/` 这份只记现状的系统地图，三种模式 update / check / backfill。触发：用户说"刷新 architecture"、"做架构检查"、"补这个模块的架构文档"、"方案和代码对得上吗"，或 feature 阶段需要先做架构动作。不写未来规划（走 k-roadmap）。
+description: 维护 `.kflow/architecture/` 这份只记现状的系统地图，三种模式 update / check / backfill。触发：用户说"刷新 architecture"、"做架构检查"、"补这个模块的架构文档"、"方案和代码对得上吗"，或 feature 阶段需要先做架构动作。不写未来规划（走 k-roadmap）。
 ---
 
 # k-arch
 
 ## 启动必读
 
-开始任何判断或动作前，先读取 `..kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
+开始任何判断或动作前，先读取 `.kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
 
-`..kflow/architecture/` 是项目"地图"——design 写方案前读它定位、issue-analyze 做根因时读它理解模块边界、新人读它知道系统大致长什么样。本技能是"起草 / 刷新 / 体检"三件事的统一入口。
+`.kflow/architecture/` 是项目"地图"——design 写方案前读它定位、issue-analyze 做根因时读它理解模块边界、新人读它知道系统大致长什么样。本技能是"起草 / 刷新 / 体检"三件事的统一入口。
 
 **architecture 是累积的、自给自足的系统地图**，不是某次 feature 的详细方案，而是所有已落地 feature 沉淀下来的"系统现在长什么样"总图。读者打开应能看懂整体结构而不需要跳回历史 design。design 是临时增量稿，acceptance 把稳定下来的名词 / 编排 / 约束提炼回这里；design 文件归档，只在追究具体决策细节时翻。
 
@@ -24,7 +24,7 @@ description: 维护 `..kflow/architecture/` 这份只记现状的系统地图，
 - **代码复述**——每节都说"这里有什么"，不说"为什么这么分"，信息量等于 `ls -R`
 - **检查时看一眼感觉没问题**——没给具体位置证据
 
-> 共享路径与命名约定看 `..kflow/reference/shared-conventions.md`。文档结构模板、check 覆盖项、报告格式看同目录 `reference.md`。
+> 共享路径与命名约定看 `.kflow/reference/shared-conventions.md`。文档结构模板、check 覆盖项、报告格式看同目录 `reference.md`。
 
 ---
 

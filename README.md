@@ -2,8 +2,6 @@
 
 # kflow
 
-[English](./README.en.md) · **中文**
-
 **面向严肃工程的 AI 编码工作流**
 
 厌倦了 OpenSpec 的草台、Oh-My-OpenAgent 的过度设计、Superpowers 的散装——我从 0 写了一套简单轻巧、围绕**人在环**的 AI Harness。
@@ -20,38 +18,43 @@
 
 ## 安装
 
-在你的**目标项目**根目录执行（[skills CLI](https://github.com/vercel-labs/skills)）：
+在**目标项目**根目录执行（[skills CLI](https://github.com/vercel-labs/skills)）：
 
 ```bash
-# 从 GitHub 安装（推荐）
 npx skills add kunbo928/kflow
-
-# 先看有哪些技能
-npx skills add kunbo928/kflow --list
-
-# 非交互：全装到当前检测到的 Agent
-npx skills add kunbo928/kflow --all -y
 ```
 
-本地开发 kflow 本身时，克隆本仓库后可用：
+交互提示选择 Agent 时选 **Claude Code**。非交互一步到位：`npx skills add kunbo928/kflow -a claude-code --skill '*' -y`
+
+装完后**新开 Claude Code 会话**：
 
 ```bash
-npx skills add .
+/k-onboard    # 首次：生成 .kflow/ 骨架
+/k-flow       # 日常：路由到正确的 k-xxx
 ```
 
-安装完成后，在项目里运行：
+<details>
+<summary>Cursor / Codex</summary>
 
 ```bash
-/k-onboard
+npx skills add kunbo928/kflow -a cursor --skill '*' -y
+npx skills add kunbo928/kflow -a codex --skill '*' -y
 ```
 
-之后日常使用时，不知道该用哪个技能就喊根入口：
+技能在 `.agents/skills/`。无 `/` 斜杠——对话里说 **「k-onboard」** / **「k-flow」**，或 `@k-flow`。
+
+</details>
+
+<details>
+<summary>更多选项</summary>
 
 ```bash
-/k-flow
+npx skills add kunbo928/kflow --list       # 查看技能列表
+npx skills add kunbo928/kflow -g           # 全局安装（跨项目可用）
+npx skills add .                           # 本地开发 kflow 源码时
 ```
 
-`k-flow` 会读你的诉求，告诉你这次该走哪个 `k-xxx`。
+</details>
 
 ---
 

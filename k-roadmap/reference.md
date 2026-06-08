@@ -187,7 +187,7 @@ done / dropped 终态
 ### 校验
 
 ```bash
-python ..kflow/tools/validate-yaml.py --file ..kflow/roadmap/{slug}/{slug}-items.yaml --yaml-only
+python .kflow/tools/validate-yaml.py --file .kflow/roadmap/{slug}/{slug}-items.yaml --yaml-only
 ```
 
 ---

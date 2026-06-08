@@ -4,7 +4,7 @@
 
 ## feature brainstorm 模板
 
-用于 case 2，路径为 `..kflow/features/{feature}/{slug}-brainstorm.md`。
+用于 case 2，路径为 `.kflow/features/{feature}/{slug}-brainstorm.md`。
 
 ```markdown
 ---
@@ -42,7 +42,7 @@ tags: [...]
 
 ## open brainstorm 模板
 
-用于 case 4，路径为 `..kflow/brainstorms/{slug}/brainstorm.md`。
+用于 case 4，路径为 `.kflow/brainstorms/{slug}/brainstorm.md`。
 
 ```markdown
 ---

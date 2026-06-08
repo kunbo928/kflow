@@ -7,7 +7,7 @@ description: feature 流程的超轻量通道——不写 design / checklist 直
 
 ## 启动必读
 
-开始任何判断或动作前，先读取 `..kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
+开始任何判断或动作前，先读取 `.kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
 
 用户让你做小功能时本来 AI 就会直接动手——这个技能**不改变这件事**。它只做一件事：动手前把项目里已沉淀的 kflow 知识指给你，按需搜一下，写出来的代码就比裸写多一层保护；动手后回写一份**最简的 `{slug}-ff-note.md`** 让这次工作可追溯、可被 k-arch / k-req backfill 看到、能纳入 scoped-commit 提交。
 
@@ -15,16 +15,16 @@ description: feature 流程的超轻量通道——不写 design / checklist 直
 
 ---
 
-## 动手前先扫一眼 ..kflow/
+## 动手前先扫一眼 .kflow/
 
-Glob `..kflow/` 发现可用目录和文档，按需取用：
+Glob `.kflow/` 发现可用目录和文档，按需取用：
 
 - **`architecture/`** — ARCHITECTURE.md 总入口 + 子系统 doc。改跨模块的东西前看一眼避免违反边界
 - **`compound/`** — learning / trick / decision / explore 四类沉淀：
   ```bash
-  python ..kflow/tools/search-yaml.py --dir ..kflow/compound --filter doc_type=learning --query "关键词"
-  python ..kflow/tools/search-yaml.py --dir ..kflow/compound --filter doc_type=decision --query "关键词"
-  python ..kflow/tools/search-yaml.py --dir ..kflow/compound --filter doc_type=trick --query "关键词"
+  python .kflow/tools/search-yaml.py --dir .kflow/compound --filter doc_type=learning --query "关键词"
+  python .kflow/tools/search-yaml.py --dir .kflow/compound --filter doc_type=decision --query "关键词"
+  python .kflow/tools/search-yaml.py --dir .kflow/compound --filter doc_type=trick --query "关键词"
   ```
 - **`requirements/`** — 有相关 req 时读边界
 - **`features/`** — 有同类 feature 时参考其 design
@@ -95,7 +95,7 @@ design / implement 的硬约束在 fastforward 的精简版。没 design doc 不
 - 往 `utils.ts` / `helpers.ts` 万能 util 堆东西
 - 新起概念名时先 grep 同名 / 近义命名
 
-完整清单看 `..kflow/reference/shared-conventions.md` 第 7 节。
+完整清单看 `.kflow/reference/shared-conventions.md` 第 7 节。
 
 ---
 
@@ -111,7 +111,7 @@ design / implement 的硬约束在 fastforward 的精简版。没 design doc 不
 - 不抽业务名词缩写、不音译中文、保持小写连字符
 - 拿不准就保守一点："tweak-{对象}" / "small-{动作}" 也比强求精准好
 
-最终路径：`..kflow/features/YYYY-MM-DD-{slug}/{slug}-ff-note.md`，日期用今天。
+最终路径：`.kflow/features/YYYY-MM-DD-{slug}/{slug}-ff-note.md`，日期用今天。
 
 ### 模板
 
@@ -148,7 +148,7 @@ tags: [...]
 
 - **不写 design doc / checklist / acceptance**——这就是 fastforward 的意义。要写就去 `k-feat-design`
 - **不跟用户确认方案**——用户让你做小功能就是不想等你开会
-- **不在 `..kflow/` 里留 `{slug}-ff-note.md` 之外的新文件**——除非发现值得沉淀的坑 / 技巧，另起对话用 `k-learn` / `k-trick` 写
+- **不在 `.kflow/` 里留 `{slug}-ff-note.md` 之外的新文件**——除非发现值得沉淀的坑 / 技巧，另起对话用 `k-learn` / `k-trick` 写
 
 ---
 
@@ -158,7 +158,7 @@ tags: [...]
 
 - 改动涉及 3 个以上子系统
 - 需要引入新术语或和现有术语冲突
-- 要动 `..kflow/architecture/` 既定的模块边界
+- 要动 `.kflow/architecture/` 既定的模块边界
 - 用户追加的要求让范围翻倍
 
 切回方式：触发 `k-feat-design`。已写的代码在 design 里标"已部分实现"即可。
@@ -175,7 +175,7 @@ tags: [...]
 
 ## 收尾提交
 
-按 `..kflow/reference/shared-conventions.md` 第 4 节"scoped-commit"规则执行。本通道：
+按 `.kflow/reference/shared-conventions.md` 第 4 节"scoped-commit"规则执行。本通道：
 
 - **提交范围**：本次代码改动 + `{slug}-ff-note.md`
 - ff-note 落盘后告诉用户"已就绪，是否代为 commit？"，用户明确同意才执行

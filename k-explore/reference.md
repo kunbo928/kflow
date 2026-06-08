@@ -18,7 +18,7 @@ confidence: high | medium | low
 ---
 ```
 
-文件名：`..kflow/compound/YYYY-MM-DD-explore-{slug}.md`。
+文件名：`.kflow/compound/YYYY-MM-DD-explore-{slug}.md`。
 
 ## 2. 正文结构
 

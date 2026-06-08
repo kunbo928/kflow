@@ -7,7 +7,7 @@ description: 修 bug 的子流程入口，把"发现问题"走到验证修复闭
 
 ## 启动必读
 
-开始任何判断或动作前，先读取 `..kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
+开始任何判断或动作前，先读取 `.kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
 
 修 bug 直觉是"找到错的地方改了完事"，但这个直觉路径反复制造同样的麻烦：
 
@@ -29,7 +29,7 @@ issue 工作流在"看到问题"和"动手改代码"之间塞缓冲：
 ## 文件放哪儿
 
 ```
-..kflow/issues/{YYYY-MM-DD}-{slug}/
+.kflow/issues/{YYYY-MM-DD}-{slug}/
 ├── {slug}-report.md           ← 阶段 1 问题报告
 ├── {slug}-analysis.md         ← 阶段 2 根因分析
 └── {slug}-fix-note.md         ← 阶段 3 修复记录（必出产物）
@@ -73,7 +73,7 @@ issue 工作流在"看到问题"和"动手改代码"之间塞缓冲：
 
 ## 路由
 
-进入本技能先 Glob `..kflow/issues/`，自己读已有文件才有数。
+进入本技能先 Glob `.kflow/issues/`，自己读已有文件才有数。
 
 | 当前状态 | 触发哪个子技能 |
 |---|---|
@@ -98,7 +98,7 @@ issue 工作流在"看到问题"和"动手改代码"之间塞缓冲：
 
 ## 相关文档
 
-- `..kflow/reference/system-overview.md` — kflow 体系总览
-- `..kflow/reference/shared-conventions.md` — 跨阶段共享口径
-- `..kflow/attention.md` — kflow 启动注意事项和项目硬约束
-- `..kflow/architecture/ARCHITECTURE.md` — 根因分析时可能要查
+- `.kflow/reference/system-overview.md` — kflow 体系总览
+- `.kflow/reference/shared-conventions.md` — 跨阶段共享口径
+- `.kflow/attention.md` — kflow 启动注意事项和项目硬约束
+- `.kflow/architecture/ARCHITECTURE.md` — 根因分析时可能要查

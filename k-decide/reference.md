@@ -17,7 +17,7 @@ tags: []
 ---
 ```
 
-文件名：`..kflow/compound/YYYY-MM-DD-decision-{slug}.md`。
+文件名：`.kflow/compound/YYYY-MM-DD-decision-{slug}.md`。
 
 ## 2. 正文模板
 

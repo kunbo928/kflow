@@ -1,15 +1,15 @@
 ---
 name: k-roadmap
-description: 把"大到塞不进单个 feature"的需求做成完整事前规划：概设 + 接口契约 + 子 feature 拆解清单，放在 `..kflow/roadmap/{slug}/`。两种模式 new / update。触发：用户说"我想要一个 X 系统"、"帮我把这块需求拆一下"、"开一份 roadmap"，或 feature-design 阶段发现需求太大。
+description: 把"大到塞不进单个 feature"的需求做成完整事前规划：概设 + 接口契约 + 子 feature 拆解清单，放在 `.kflow/roadmap/{slug}/`。两种模式 new / update。触发：用户说"我想要一个 X 系统"、"帮我把这块需求拆一下"、"开一份 roadmap"，或 feature-design 阶段发现需求太大。
 ---
 
 # k-roadmap
 
 ## 启动必读
 
-开始任何判断或动作前，先读取 `..kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
+开始任何判断或动作前，先读取 `.kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
 
-`..kflow/roadmap/` 是项目的"规划层"——每个子目录承载一块大需求，主文档由三块构成：
+`.kflow/roadmap/` 是项目的"规划层"——每个子目录承载一块大需求，主文档由三块构成：
 
 1. **概设**：这块大需求要怎么搭、拆成哪几个模块 / 组件、各自职责
 2. **架构层详设**：模块之间的接口契约、共享数据结构、跨 feature 的协议
@@ -23,7 +23,7 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 
 **为什么文件夹不是单文件**：拆解过程会产生草稿 / 调研 / 方案对比 / 白板转述，塞一份 md 会乱又舍不得删。每个 roadmap 一个子目录，主文档对外口径，旁边 `drafts/` 随便堆。
 
-> 共享路径与命名约定看 `..kflow/reference/shared-conventions.md`。主文档和 items 完整模板看同目录 `reference.md`。
+> 共享路径与命名约定看 `.kflow/reference/shared-conventions.md`。主文档和 items 完整模板看同目录 `reference.md`。
 
 ---
 
@@ -58,7 +58,7 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 ## 目录结构
 
 ```
-..kflow/roadmap/{slug}/
+.kflow/roadmap/{slug}/
 ├── {slug}-roadmap.md       主文档：背景 / 范围 / 模块拆分（概设）/ 接口契约（架构层详设）/ 子 feature 清单 / 排期
 ├── {slug}-items.yaml       机器可读清单（feature-design 读、feature-acceptance 回写）
 └── drafts/                 可选，调研 / 讨论 / 草稿
@@ -76,10 +76,10 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 
 ### Phase 2：读取材料
 
-**共同必读**：`..kflow/attention.md` + 用户素材 + `roadmap/` 其他 roadmap（防重复）+ `requirements/` 相关 req + `architecture/` 相关 doc。
+**共同必读**：`.kflow/attention.md` + 用户素材 + `roadmap/` 其他 roadmap（防重复）+ `requirements/` 相关 req + `architecture/` 相关 doc。
 
 **按情况读**：
-- 相关 compound 沉淀：`python ..kflow/tools/search-yaml.py --dir ..kflow/compound --query "{大需求关键词}"`
+- 相关 compound 沉淀：`python .kflow/tools/search-yaml.py --dir .kflow/compound --query "{大需求关键词}"`
 - 已有相关 feature 方案
 
 **update 额外**：当前主文档全文 + items.yaml 当前状态 + 已启动 / 完成的子 feature 的 design / acceptance。
@@ -105,7 +105,7 @@ review 前自跑一遍汇报处理：
 
 1. 模块拆分讲清了吗？每个模块职责一句话能说出来？
 2. 接口契约写到可执行程度了吗？feature-design 看完不需要回来问就能直接照着实现？
-3. 每条子 feature 的 slug 规范？（grep `..kflow/features/` 确认不冲突）
+3. 每条子 feature 的 slug 规范？（grep `.kflow/features/` 确认不冲突）
 4. 每条描述一句话讲清楚？讲不清就拆得不够或 scope 太模糊
 5. 依赖关系是 DAG？有没有自指 / A→B→A 回环
 6. 最小闭环真的最小？第一条做完能独立给用户演示点什么？
@@ -120,7 +120,7 @@ review 前自跑一遍汇报处理：
 
 ### Phase 6：落盘
 
-**new**：建 `..kflow/roadmap/{slug}/`；写主文档（`status: active` / `created` / `last_reviewed` 当天）；写 items.yaml（每条 `status: planned`、`feature: null`）；`validate-yaml.py` 校验。
+**new**：建 `.kflow/roadmap/{slug}/`；写主文档（`status: active` / `created` / `last_reviewed` 当天）；写 items.yaml（每条 `status: planned`、`feature: null`）；`validate-yaml.py` 校验。
 
 **update**：改主文档（`last_reviewed` 当天，结构性改动文末加变更日志）；改 items.yaml 对应条目（drop 不删，`status: dropped` 留存理由）；重新校验 yaml。
 

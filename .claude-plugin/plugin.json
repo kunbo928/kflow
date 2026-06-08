@@ -1,0 +1,31 @@
+{
+  "name": "kflow",
+  "skills": [
+    "./k-flow",
+    "./k-onboard",
+    "./k-req",
+    "./k-arch",
+    "./k-roadmap",
+    "./k-brainstorm",
+    "./k-feat",
+    "./k-feat-design",
+    "./k-feat-impl",
+    "./k-feat-accept",
+    "./k-feat-ff",
+    "./k-issue",
+    "./k-issue-report",
+    "./k-issue-analyze",
+    "./k-issue-fix",
+    "./k-refactor",
+    "./k-refactor-ff",
+    "./k-audit",
+    "./k-learn",
+    "./k-trick",
+    "./k-decide",
+    "./k-explore",
+    "./k-guide",
+    "./k-libdoc",
+    "./k-note",
+    "./browser-bridge"
+  ]
+}

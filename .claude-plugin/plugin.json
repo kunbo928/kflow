@@ -1,5 +1,7 @@
 {
   "name": "kflow",
+  "version": "1.0.0",
+  "description": "面向严肃工程的 AI 编码工作流——编排软件生命周期（需求、架构、特性、缺陷、决策），人在环。",
   "skills": [
     "./k-flow",
     "./k-onboard",
@@ -25,7 +27,6 @@
     "./k-explore",
     "./k-guide",
     "./k-libdoc",
-    "./k-note",
-    "./browser-bridge"
+    "./k-note"
   ]
 }

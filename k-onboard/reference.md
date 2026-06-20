@@ -85,7 +85,7 @@ attention.md 是 kflow 技能启动必读的项目注意事项入口。onboard �
 
 ## 4. `CLAUDE.md` Claude Code 入口模板
 
-与 `AGENTS.md` 内容一致，但以 Claude Code 技能触发方式表述。
+与 `AGENTS.md` 内容一致，但以 Claude Code 技能触发方式表述。如果项目只用 Claude Code，可以直接 `ln -s AGENTS.md CLAUDE.md`。
 
 ```markdown
 # CLAUDE
@@ -111,36 +111,4 @@ attention.md 是 kflow 技能启动必读的项目注意事项入口。onboard �
 | 搭 kflow / 初始化 | `k-onboard` |
 
 其他场景完整路由表：触发 `k-flow` 技能。
-```
-
-## 5. `.cursor/rules/kflow.mdc` Cursor 入口模板
-
-```markdown
----
-description: kflow 工作流路由
-globs: **/*
-alwaysApply: true
----
-
-本项目已接入 kflow 工作流体系。
-
-## 启动规则
-
-**每次对话开始，先读取 `.kflow/attention.md`，再开始任何工作。**
-
-如果 `.kflow/` 目录不存在，先执行 `.kflow/skills/k-onboard/SKILL.md`。
-
-## 场景路由
-
-| 你想做什么 | 读取文件 |
-|-----------|---------|
-| 不知道走哪个 | `.kflow/skills/k-flow/SKILL.md` |
-| 新功能 / 实现需求 | `.kflow/skills/k-feat/SKILL.md` |
-| 修 bug / 异常 | `.kflow/skills/k-issue/SKILL.md` |
-| 想法模糊想聊 | `.kflow/skills/k-brainstorm/SKILL.md` |
-| 重构 / 代码优化 | `.kflow/skills/k-refactor/SKILL.md` |
-| 摸代码 / 了解实现 | `.kflow/skills/k-explore/SKILL.md` |
-| 搭 kflow / 初始化 | `.kflow/skills/k-onboard/SKILL.md` |
-
-工具映射：技能文件用 Claude Code 工具名（Read/Write/Edit/Bash/Glob/Grep），映射到 Cursor 的等价工具。
 ```

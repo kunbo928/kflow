@@ -1,6 +1,6 @@
 ---
 name: k-onboard
-description: 把新仓库或有零散文档的仓库接入 kflow 体系——两条路径自动判断：空仓库从零搭骨架，已有文档走审计 + 迁移映射——然后释放技能文件和跨平台入口（AGENTS.md / CLAUDE.md / .cursor/rules）。触发：用户说"在这个项目里用 kflow"、"搭 kflow 结构"、"初始化 kflow"、"迁移到 kflow"。
+description: 把新仓库或有零散文档的仓库接入 kflow 体系——两条路径自动判断：空仓库从零搭骨架，已有文档走审计 + 迁移映射——然后释放技能文件和跨平台入口（AGENTS.md，可选 CLAUDE.md）。触发：用户说"在这个项目里用 kflow"、"搭 kflow 结构"、"初始化 kflow"、"迁移到 kflow"。
 ---
 
 # k-onboard
@@ -57,7 +57,7 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
 
 1. **检查 `.kflow/`**：不存在 → 空仓库候选；存在但不完整 → 迁移（部分补齐）
 2. **Glob 全仓库 `.md`**（排除 `node_modules/` `.git/`）：根目录 `DESIGN.md` / `ARCHITECTURE.md` / `SPEC.md` / `README.md`；`docs/` `doc/` `design/` `spec/` `wiki/`；现有 `.kflow/` 下文件
-3. **检测已有入口文件**：项目根目录 `AGENTS.md` / `CLAUDE.md` / `.cursor/rules/kflow.mdc`，存在则记录（后面生成时逐条问用户）
+3. **检测已有入口文件**：项目根目录 `AGENTS.md` / `CLAUDE.md`，存在则记录（后面生成时逐条问用户）
 4. **检查 `.kflow/attention.md`**：缺失则列为骨架待补齐项
 5. **探测技能源**：往上找兄弟目录是否有 `k-flow/SKILL.md`（说明正在 kflow 源仓库里），找不到则问用户"kflow 技能源在哪？"
 6. **汇报扫描结论**：找到的相关文档（列路径）+ 技能源路径 + 走哪条路径 + 判断依据 + 不确定项
@@ -92,8 +92,8 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
 
 **步骤 4：生成跨平台入口文件**
 
-1. 必选：`AGENTS.md`（模板见同目录 `reference.md` 第 3 节）——全平台 AI 都会读取
-2. `AskUserQuestion`（multiSelect）问是否生成 `CLAUDE.md`（Claude Code）和 `.cursor/rules/kflow.mdc`（Cursor）
+1. 必选：`AGENTS.md`（模板见同目录 `reference.md` 第 3 节）——Cursor/Codex/OpenCode/Claude Code 等全平台 AI 都会读取
+2. `AskUserQuestion` 问是否生成 `CLAUDE.md`（Claude Code）。如果项目只用 Claude Code，可以直接 `ln -s AGENTS.md CLAUDE.md` 做符号链接
 3. 遇到项目已有这些文件 → 逐条 `AskUserQuestion`：覆盖 / 追加到末尾 / 跳过
 
 **步骤 5：attention.md 提醒**

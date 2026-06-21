@@ -34,11 +34,6 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
 ├── features/                   feature 聚合根
 ├── issues/                     issue 聚合根
 ├── compound/                   沉淀类统一目录（learning / trick / decision / explore）
-├── skills/                     技能文件（onboard 从技能包释放，跨平台 AI 按需读取）
-│   ├── k-flow/
-│   ├── k-onboard/
-│   ├── k-feat/
-│   └── ...（全量 26 个或精简 7 个）
 ├── tools/                      跨工作流共享脚本（onboard 释放）
 │   ├── search-yaml.py
 │   └── validate-yaml.py
@@ -59,8 +54,7 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
 2. **Glob 全仓库 `.md`**（排除 `node_modules/` `.git/`）：根目录 `DESIGN.md` / `ARCHITECTURE.md` / `SPEC.md` / `README.md`；`docs/` `doc/` `design/` `spec/` `wiki/`；现有 `.kflow/` 下文件
 3. **检测已有入口文件**：项目根目录 `AGENTS.md` / `CLAUDE.md`，存在则记录（后面生成时逐条问用户）
 4. **检查 `.kflow/attention.md`**：缺失则列为骨架待补齐项
-5. **探测技能源**：往上找兄弟目录是否有 `k-flow/SKILL.md`（说明正在 kflow 源仓库里），找不到则问用户"kflow 技能源在哪？"
-6. **汇报扫描结论**：找到的相关文档（列路径）+ 技能源路径 + 走哪条路径 + 判断依据 + 不确定项
+5. **汇报扫描结论**：找到的相关文档（列路径）+ `skills_path` + 走哪条路径 + 不确定项
 
 ---
 
@@ -81,26 +75,14 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
 - `.kflow/tools/`（用 `cp -rf` / `Copy-Item -Recurse -Force` 整目录拷贝技能包 `k-onboard/tools/`，**不要 Read 再 Write**）
 - `.kflow/reference/`（同上）
 
-> **落盘用 shell 整目录覆盖**，不要 Read 再 Write——这两个目录是机器共享资产，Read+Write 会截断大文件、改缩进、吃空行，还慢费 token。具体命令见迁移路径步骤 4。
+> **落盘用 shell 整目录覆盖**，不要 Read 再 Write——这两个目录是机器共享资产，Read+Write 会截断大文件、改缩进、吃空行，还慢费 token。具体命令见迁移路径步骤 
 
-**步骤 3：释放技能文件**
 
-1. `AskUserQuestion` 问技能规模：**全量 26 个** 还是 **精简 7 个**（`k-feat` `k-issue` `k-brainstorm` `k-refactor` `k-explore` `k-flow` `k-onboard`），默认全量
-2. `cp -rf <技能源>/k-{所选技能}/ .kflow/skills/`
-
-精简包的 7 个覆盖日常 95% 场景，其他技能以后重跑 onboard 或手动补。
-
-**步骤 4：生成跨平台入口文件**
-
-1. 必选：`AGENTS.md`（模板见同目录 `reference.md` 第 3 节）——Cursor/Codex/OpenCode/Claude Code 等全平台 AI 都会读取
-2. `AskUserQuestion` 问是否生成 `CLAUDE.md`（Claude Code）。如果项目只用 Claude Code，可以直接 `ln -s AGENTS.md CLAUDE.md` 做符号链接
-3. 遇到项目已有这些文件 → 逐条 `AskUserQuestion`：覆盖 / 追加到末尾 / 跳过
-
-**步骤 5：attention.md 提醒**
+**步骤 3：attention.md 提醒**
 
 attention.md 已创建但默认只有空骨架。汇报时提醒用户：有编译前置、测试命令、目录禁区、凭证规则这类"每次 kflow 技能启动都必须知道"的信息，后续用 `k-note` 一条条追加。
 
-**步骤 6：验收汇报**
+**步骤 4：验收汇报**
 
 列建了哪些文件：
 
@@ -138,7 +120,7 @@ attention.md 已创建但默认只有空骨架。汇报时提醒用户：有编�
 
 对照标准骨架补齐**用户确认后仍缺失**的目录 / 文件。已有内容不覆盖。
 
-**`.kflow/tools/`、`.kflow/reference/`、`.kflow/skills/` 一律用技能包新版本覆盖**——这三个目录是技能包维护的共享资产，权威源在技能包，项目里的只是落盘副本。技能包升级后再跑 onboard 的目的之一就是刷新副本，留旧版本会让子技能按过时口径工作。
+**`.kflow/tools/`、`.kflow/reference/` 一律用技能包新版本覆盖**——这两个目录是技能包维护的共享资产，权威源在技能包，项目里的只是落盘副本。技能包升级后再跑 onboard 的目的之一就是刷新副本。
 
 覆盖前在汇报列出被覆盖文件让用户知道；用户明确说"我改过 tools/xxx.py 请保留"才例外保留并标红。这是迁移路径**唯一强制覆盖**的动作，其他已有文件遵守"不经确认不动"。
 
@@ -148,27 +130,23 @@ attention.md 已创建但默认只有空骨架。汇报时提醒用户：有编�
 # macOS / Linux
 cp -rf <技能源>/k-onboard/tools/.      .kflow/tools/
 cp -rf <技能源>/k-onboard/reference/.  .kflow/reference/
-cp -rf <技能源>/k-{所选技能}/          .kflow/skills/
 
 # Windows PowerShell
 Copy-Item -Recurse -Force <技能源>\k-onboard\tools\*      .kflow\tools\
 Copy-Item -Recurse -Force <技能源>\k-onboard\reference\*  .kflow\reference\
-Copy-Item -Recurse -Force <技能源>\k-{所选技能}\*          .kflow\skills\
 ```
 
 不要：Read+Write 手工搬（截断 / 改缩进）、一个个 cp（多步骤多出错）、先比 diff（规则就是无条件覆盖）。
 
-`<技能源>` 是启动检查步骤 6 确认的 kflow 技能所在目录。拷完 `ls .kflow/tools/ .kflow/reference/ .kflow/skills/` 验证。
+`<技能源>` 是 kflow 技能包所在目录（即包含 `k-onboard/tools/` 和 `k-onboard/reference/` 的目录）。拷完 `ls .kflow/tools/ .kflow/reference/` 验证。
 
-**步骤 5：生成跨平台入口文件**（同空仓库路径步骤 4）
-
-**步骤 6：处理不迁移的文件**
+**步骤 5：处理不迁移的文件**
 
 用户选"跳过"的文件：**不移动 / 不删除 / 不重命名**，汇报标"保留原位（未纳入 kflow）"。**绝不允许未经确认就动**——onboard 只允许 AI 整理不允许替用户做删除决定。
 
-**步骤 7：attention.md 提醒**（同空仓库路径步骤 5）
+**步骤 6：attention.md 提醒**（同空仓库路径步骤 3）
 
-**步骤 8：验收汇报**
+**步骤 7：验收汇报**
 
 列：迁移文件清单（from → to）、新建骨架、未迁移文件（保留原位）、下一步建议。
 
@@ -182,9 +160,9 @@ Copy-Item -Recurse -Force <技能源>\k-{所选技能}\*          .kflow\skills\
 
 ## 退出条件
 
-- [ ] `.kflow/` 九个子目录都存在（含 `skills/`）
+- [ ] `.kflow/` 八个子目录都存在
 - [ ] `.kflow/attention.md` 已建
-- [ ] `.kflow/tools/`、`.kflow/reference/`、`.kflow/skills/` 已从技能包复制
+- [ ] `.kflow/tools/`、`.kflow/reference/` 已从技能包复制；`skills_path` 已确定（`.claude/skills/` 或 `.agents/skills/`）
 - [ ] `.kflow/architecture/ARCHITECTURE.md` 已建
 - [ ] `AGENTS.md` 已生成
 - [ ] 迁移路径：每条映射都有明确处理结果（迁移 / 保留原位）
@@ -199,7 +177,7 @@ Copy-Item -Recurse -Force <技能源>\k-{所选技能}\*          .kflow\skills\
 - **替用户填 attention.md 实质内容**——必须项目 owner 来定，AI 只提供模板
 - **建完骨架立刻开始 feature/issue**——onboard 是"搭环境"不是"开始干活"
 - **低置信度直接执行**——低 = 必须问
-- **`.kflow/tools/` / `.kflow/reference/` / `.kflow/skills/` 走"不覆盖"保守策略**——这三个**必须**用技能包新版本覆盖，否则升级后用户停留在过时口径
+- **`.kflow/tools/` / `.kflow/reference/` 走"不覆盖"保守策略**——这两个**必须**用技能包新版本覆盖，否则升级后用户停留在过时口径
 - **用 Read + Write 手工搬**——必须 `cp -rf` / `Copy-Item -Recurse -Force` 整目录覆盖
 - **Glob 时忘记排除 `node_modules/` `.git/`**——会让扫描结果充斥噪声
 - **覆盖已有 AGENTS.md 不先问用户**——已有入口文件必须逐条确认

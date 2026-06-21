@@ -22,12 +22,6 @@
 npx skills add kunbo928/kflow
 ```
 
-交互提示选择 Agent 时选 **Claude Code**。非交互一步到位：
-
-```bash
-npx skills add kunbo928/kflow -a claude-code --skill '*' -y
-```
-
 装完后**新开 Claude Code 会话**：
 
 ```bash
@@ -36,24 +30,11 @@ npx skills add kunbo928/kflow -a claude-code --skill '*' -y
 ```
 
 <details>
-<summary>Cursor / Codex</summary>
-
-```bash
-npx skills add kunbo928/kflow -a cursor --skill '*' -y
-npx skills add kunbo928/kflow -a codex --skill '*' -y
-```
-
-技能在 `.agents/skills/`。无 `/` 斜杠——对话里说 **「k-onboard」** / **「k-flow」**，或 `@k-flow`。
-
-</details>
-
-<details>
 <summary>更多选项</summary>
 
 ```bash
 npx skills add kunbo928/kflow --list       # 查看技能列表
 npx skills add kunbo928/kflow -g           # 全局安装（跨项目可用）
-npx skills add .                           # 本地开发 kflow 源码时
 ```
 
 </details>

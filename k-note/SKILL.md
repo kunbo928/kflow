@@ -9,7 +9,7 @@ description: 把"短到不值得起一份文件、但 AI 每次启动 kflow 技�
 
 开始任何判断或动作前，先检查 `.kflow/attention.md`：存在就读取；缺 `.kflow/` 就提示先运行 `k-onboard`；只有 attention.md 缺失时，本技能可以先创建固定分节骨架再写入。
 
-k-learn / k-trick / k-decide 产出独立 markdown 文件，**通过检索**被读到；`.kflow/attention.md` 是 kflow 技能启动时的**强制必读**上下文。这两类信息归宿不同——本技能专管后者：把"短、稳、每次都要知道"的碎片追加到 attention 文件里。
+k-learn / k-trick / k-decide 产出独立 markdown 文件，**通过检索**被读到；`.kflow/attention.md` 是执行类 kflow 技能启动时的**短提醒清单**。这两类信息归宿不同——本技能专管后者：只把"短、稳、每次动手前都要知道"的提醒追加到 attention 文件里。
 
 不替代沉淀类技能，是补一个之前缺的入口。
 
@@ -21,7 +21,7 @@ k-learn / k-trick / k-decide 产出独立 markdown 文件，**通过检索**被�
 
 | 项 | 进 k-note | 走别处 |
 |---|---|---|
-| 长度 | 一两行能讲清 | 超过半屏 / 需要展开背景 → k-learn |
+| 长度 | 一行能讲清，可附一个文档链接 | 超过两行 / 需要展开背景 → k-learn / k-trick / k-decide |
 | 频次 | 几乎每次会话都用得上 | 只在某类具体任务相关 → k-trick |
 | 稳定度 | 项目长期生效的硬约束 | 临时绕过 / 短期 workaround → 写到 issue spec 或 feature spec |
 | 拍板状态 | 已既成事实（不需要决策记录） | 需要记选型理由 / 拒方案 → k-decide |
@@ -29,6 +29,7 @@ k-learn / k-trick / k-decide 产出独立 markdown 文件，**通过检索**被�
 ✅ **典型该进**：
 
 - "编译要先 `pnpm run gen` 生成 schema"
+- "Prisma schema 改动细节看 `compound/2026-xx-xx-trick-prisma-schema.md`"
 - "本地起服务前必须 `docker compose up redis`"
 - "项目用 yarn berry，**别**用 `npm install`"
 - "测试命令是 `bun test`，不是 `npm test`"
@@ -54,7 +55,7 @@ k-learn / k-trick / k-decide 产出独立 markdown 文件，**通过检索**被�
 - `.kflow/` 不存在 → 本仓库还没接入 kflow，先提示用户运行 `k-onboard`
 - `.kflow/attention.md` 不存在 → 视为骨架缺失，先创建最小骨架再写入
 
-attention.md 是项目注意事项的唯一权威源。跨平台 AI 通过 `AGENTS.md`（k-onboard 生成）发现并读取它。
+attention.md 是项目注意事项的短索引，不是详细说明书。跨平台 AI 通过 `AGENTS.md`（k-onboard 生成）发现它；路由类技能只检查存在，执行类技能读取全文。
 
 ---
 
@@ -84,11 +85,11 @@ attention.md 是项目注意事项的唯一权威源。跨平台 AI 通过 `AGEN
 
 **规则**：
 
-- 新条目去对应分节末尾追加，每条一行（最多两行）
+- 新条目去对应分节末尾追加，每条一行；需要解释时链接到 compound / architecture / requirement / feature / issue 文档
 - 没有合适的分节 → 进"其他"。"其他"超过 5 条就停下来和用户讨论是否新增固定分节（不要默默加节）
 - 分节为空时整段保留，不删（让 AI 看到这一节是有意义的）
 - 注释行 `<!-- k-note managed -->` 是本技能的识别锚——找不到就在文件末尾插入整块结构
-- **整段长度软上限 ~150 行**——超过提示用户："碎片知识太多了，挑几条沉到 k-learn / k-decide 里？"
+- **文件硬上限 50 条有效项目**（不含标题 / 空行 / 注释）——达到上限就拒绝追加，要求先沉淀或合并旧条目
 
 ---
 
@@ -127,14 +128,15 @@ attention.md 是项目注意事项的唯一权威源。跨平台 AI 通过 `AGEN
 
 写完用户 review 一句确认就退出。**不主动连写多条**——一次一条，避免顺手把没拍板的也塞进去。
 
-### 5. 触发软上限检查
+### 5. 硬上限检查
 
-写完看一眼"项目碎片知识"段总行数：
+写入前后都检查有效项目数（`- ` 开头的条目）：
 
-- ≥150 行 → 提示用户挑几条沉到 k-learn / k-decide
+- ≥50 条 → 停止追加，提示用户先把详细内容迁到 k-learn / k-trick / k-decide / architecture，并在 attention 里只保留一行链接
+- 40-49 条 → 允许本次写入，但提示尽快整理
 - "其他"分节 ≥5 条 → 提示用户讨论是否新增固定分节
 
-只是**提示**，不替用户决定。
+不要替用户决定迁哪条，但要明确拒绝把 attention.md 继续当知识库堆。
 
 ---
 
@@ -152,6 +154,7 @@ attention.md 是项目注意事项的唯一权威源。跨平台 AI 通过 `AGEN
 ## 容易踩的坑
 
 - 把详细背景 / 多步骤指南塞进 attention.md——超过两行就该走 k-learn
+- 把 attention.md 当知识库——它只能是一屏左右的短提醒索引
 - 写到 `AGENTS.md` / `CLAUDE.md`——k-note 只写 attention.md，入口文件由 k-onboard 统一管理
 - 默默新增分节——分节是写死的，新增要先和用户讨论
 - 看到一条就连带把其他几条也写进去——一次一条

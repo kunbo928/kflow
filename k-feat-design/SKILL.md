@@ -11,7 +11,7 @@ description: feature 流程阶段 1——为新功能起草 {slug}-design.md 作
 
 这一阶段的产出是一份方案文件 `{slug}-design.md`，加上从中抽出的行动清单 `{slug}-checklist.yaml`。这两份东西后面会被两个阶段消费——implement 照着推进、acceptance 照着核对，所以这里写错或写漏，下游就跟着错。
 
-> 共享路径和命名约定看 `.kflow/reference/shared-conventions.md`。本阶段一般 feature 目录已经由 brainstorm 创建好了；没有的话在这一步建。
+> 共享路径和命名约定看 `.kflow/reference/shared-paths.md`。本阶段一般 feature 目录已经由 brainstorm 创建好了；没有的话在这一步建。
 
 本阶段有三个入口：
 
@@ -75,7 +75,7 @@ description: feature 流程阶段 1——为新功能起草 {slug}-design.md 作
 3. **走"流程"一节**，frontmatter 加 `roadmap` / `roadmap_item` 两字段
 4. **落盘 `status: approved` 同时回写 items.yaml**：对应条目 `status: in-progress` + `feature: YYYY-MM-DD-{slug}`，用 `validate-yaml.py` 校验
 
-完整衔接协议看 `.kflow/reference/shared-conventions.md` 第 2.5 节。
+完整衔接协议看 `.kflow/reference/shared-roadmap-feature.md`。
 
 ---
 
@@ -159,7 +159,7 @@ design 只管"编排-计算分离"里的编排那一侧：**这次 feature 在�
 - **复杂度档位对齐**——需求里出现"对外 SDK / 高并发 / 一次性工具"等偏离信号时，打开 `.kflow/reference/code-dimensions.md` 列偏离点；无信号写"走默认档位"
 - **grep 找"叫法不同的类似模块"**——直觉"可能已有人做过但命名不同"时，grep 同义词
 
-详细规则看 `.kflow/reference/shared-conventions.md` 第 5 节。
+详细规则看 `.kflow/reference/shared-archive.md`。
 
 ### 2. 想清楚这功能该放在哪儿
 
@@ -183,7 +183,7 @@ AI 默认翻车的姿势是**不思考就往眼前最顺手的文件里加**。
 - "现状"必须指向代码位置，不能想当然——读者要靠它判断"变化"是否合理
 - 编排层开头一张 mermaid 图建 mental model
 - 挂载点按"删了它 feature 是否消失"判据，3-5 条为正常区间
-- 推进策略按 paradigm 维度切片（编排骨架 → 计算节点 → 持久化 → 测试），不下沉到 file:line
+- 推进策略按 paradigm 维度切片（编排骨架 → 计算节点 → 持久化 → 集成测试与全量回归），不下沉到 file:line。前面各步由 implement 按严格 TDD 落单元测试，最后一步专门落集成测试（真实环境）+ 全量回归
 - **第 2.5 节"结构健康度与微重构"是固定步骤**——按 reference.md 写作要求评估**两类对象**：要改的文件（文件级）+ 要落新文件的目标目录（目录级）。**评估前先查 compound 已有 convention**（关键词围绕"目录组织 / 文件归属 / 命名约定"），命中就直接照办。结论三选一：
   1. **不做**——文件健康 / 目录不挤 / 改动量小 / 微重构收益不抵风险，写"本次不做微重构，原因：……"
   2. **做微重构（拆文件）**——文件偏胖或职责混杂但能用 provable refactor（拆函数 / 拆文件 / 移动定义，编译器全程绿灯）解决

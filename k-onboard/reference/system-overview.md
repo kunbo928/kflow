@@ -103,11 +103,16 @@ AI 最常见的问题是一口气铺几百行代码才让人看——等发现�
 
 ## 进一步参考
 
-- `.kflow/reference/shared-conventions.md` — 目录结构、YAML frontmatter 口径、`{slug}-checklist.yaml` 生命周期、收尾 commit 约定、归档类共享规则
+- `.kflow/reference/shared-conventions.md` — 共享口径索引
+- `.kflow/reference/shared-paths.md` — 目录结构
+- `.kflow/reference/shared-frontmatter.md` — YAML frontmatter 口径
+- `.kflow/reference/shared-checklist.md` — `{slug}-checklist.yaml` 生命周期
+- `.kflow/reference/shared-closeout.md` — 收尾 commit 约定
+- `.kflow/reference/shared-archive.md` — 归档类共享规则
 - `.kflow/reference/tools.md` — `search-yaml.py` / `validate-yaml.py` 用法
 - `.kflow/reference/maintainer-notes.md` — 断点恢复、新增子工作流的登记
 
-目录结构（requirements/、architecture/、roadmap/、features/、issues/、compound/、skills/、tools/、reference/）的权威定义在 `shared-conventions.md`。要改目录先改那里——方法是改 `k-onboard/reference/shared-conventions.md` 这个模板,新项目 onboard 时会带上新版本。
+目录结构的权威定义在 `shared-paths.md`。要改目录先改 `k-onboard/reference/shared-paths.md` 这个模板，新项目 onboard 时会带上新版本。
 
 
 ## 相关

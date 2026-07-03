@@ -7,7 +7,7 @@ description: kflow 工作流根入口，介绍体系全貌并把诉求路由到�
 
 ## 启动必读
 
-开始任何判断或动作前，先读取 `.kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
+开始任何判断或动作前，先检查 `.kflow/attention.md` 是否存在；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。本技能只路由，默认不读 attention 全文。
 
 `k-flow` 是 kflow 工作流家族的统一入口。用户开口大概率不会指名某个 `k-xxx`——可能只说"我想加个权限校验"、"这个地方有 bug"、"介绍下 .kflow"，甚至只发一个 `k-flow`。本技能负责接住开放式输入，弄清意图，路由到对的子技能。
 
@@ -25,9 +25,11 @@ description: kflow 工作流根入口，介绍体系全貌并把诉求路由到�
 回应前每次都做（几个 tool 调用就够）：
 
 1. **看仓库有没有接入 kflow**——`Glob .kflow/` 看顶层目录
-2. **存在**——必须先 `Read .kflow/attention.md`（如果缺失提示骨架不完整，先补齐或重跑 `k-onboard`）；再 `Read .kflow/reference/system-overview.md`（如果有）；`Glob` 一下 `features/` `issues/` `roadmap/` 看进行中的工作（拿目录名就够，不逐份读）
+2. **存在**——确认 `.kflow/attention.md` 存在即可；`Glob` 一下 `features/` `issues/` `roadmap/` 看进行中的工作（拿目录名就够，不逐份读）
 3. **不存在**——后面提示用户先走 `k-onboard`
 4. **看用户原话**——开放式还是带具体诉求？带诉求匹配路由表，没诉求给体系介绍
+
+`system-overview.md` 只在用户明确要"详细介绍 / 体系全貌 / 深入解释"时读取；普通路由和简短介绍用本文件的速读图即可，避免每次入口调用都加载完整总览。
 
 扫完才回应。让用户感觉你心里有数。
 

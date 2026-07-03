@@ -27,11 +27,11 @@ AI 对话随时可能中断（token 超限、网络断开、用户换设备）�
 
 ### 跨阶段新约束
 
-如果发现某条规则适用于所有阶段（例如所有 spec doc 都必须补某个字段），优先写进共享 reference（`shared-conventions.md` 或 `system-overview.md`），不要只改一个子技能。
+如果发现某条规则适用于所有阶段（例如所有 spec doc 都必须补某个字段），优先写进对应共享 reference 小文件，不要只改一个子技能。
 
 ### 新模板 / 新产物类型
 
-如果引入新的 spec 产物（例如风险评估表、回滚预案），先在 `shared-conventions.md` 登记路径，再在对应阶段技能里引用。
+如果引入新的 spec 产物（例如风险评估表、回滚预案），先在 `shared-paths.md` 登记路径，再在对应阶段技能里引用。
 
 ### 共享术语表
 
@@ -39,7 +39,7 @@ AI 对话随时可能中断（token 超限、网络断开、用户换设备）�
 
 ### 跨工作流状态一览
 
-目前查看"项目当前有几个 feature 在进行中、几个 issue 未关闭"仍需要手动查询。未来如要补 `status.py` 或 `.kflow/STATUS.md`，先在 `shared-conventions.md` 登记方向，再实现。
+目前查看"项目当前有几个 feature 在进行中、几个 issue 未关闭"仍需要手动查询。未来如要补 `status.py` 或 `.kflow/STATUS.md`，先在 `shared-paths.md` 登记方向，再实现。
 
 ---
 

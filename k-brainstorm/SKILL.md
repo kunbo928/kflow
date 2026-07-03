@@ -14,7 +14,7 @@ brainstorm 是"讨论层"统一入口。
 - **用决策树推进对话**——把问题拆成"先决策什么、后决策什么"的树，按依赖从上到下逐支澄清，直到形成共享理解
 - **AI 是思考伙伴不是记录员**——用户来这步是想被挑战、被启发，不是被一条条问题填表。如果只是把用户的话整理一遍写下来这步就白做了
 
-> 共享路径和命名约定看 `.kflow/reference/shared-conventions.md`。
+> 共享路径和命名约定看 `.kflow/reference/shared-paths.md`。
 
 ---
 
@@ -33,18 +33,24 @@ brainstorm 是"讨论层"统一入口。
 
 ### 开聊前检查
 
-每次都做：
+每次都做，但按需加载正文：
 
-1. **扫一眼仓库**——先读 `.kflow/attention.md`；Glob `.kflow/` 发现 architecture / features / roadmap / brainstorms / compound / requirements，读架构总入口、看已有 feature 和 roadmap 和 brainstorm、搜 compound 看有没有相关坑（`--filter doc_type=learning`）；Grep 用户描述里的关键词防术语冲突。缺 attention.md 视为骨架不完整，不回退读外部 AI 入口
-2. **是不是接续之前的工作**：
+1. **扫一眼仓库索引**——先检查 `.kflow/attention.md` 是否存在；Glob `.kflow/` 顶层和 `architecture/`、`features/`、`roadmap/`、`brainstorms/`、`requirements/`、`compound/` 的目录名 / 文件名。缺 attention.md 视为骨架不完整，不回退读外部 AI 入口。默认不读 attention 全文；要做 spike / 落盘 / 触碰代码前再读短清单
+2. **用关键词缩小范围**——从用户原话提取 2-5 个关键词，先 `rg` 文件名和 frontmatter / 标题 / slug。只读取命中的正文；没有命中就不要为了"熟悉项目"打开架构总入口或历史 feature
+3. **按决策需要补读**：
+   - 需要判断术语 / 模块边界 → 读相关 architecture 小节或架构总入口
+   - 需要判断是否接续工作 → 读相近 feature / roadmap / brainstorm 正文
+   - 需要规避旧坑 → 搜 compound，命中后只读相关 learning / decision / trick
+   - 用户问的是事实问题 → 先读对应代码或文档证据，再回到对话
+4. **是不是接续之前的工作**：
    - `features/` 下有名字相近的 brainstorm？`roadmap/` 下有相近子目录？`brainstorms/` 下有相关创意记录？
    - 没有 → 当新讨论
    - 有 brainstorm 内容是中断留下的 → 读完汇报"上次聊到 {…}，接着聊还是推翻？"
    - 有同名 design.md → 告诉用户 design 已开，是不是走错入口
    - 有同名 roadmap → 这块已在 roadmap 跟进，是不是要推进具体子 feature
    - `brainstorms/` 下有相关创意记录 → 读完汇报"之前 {日期} 存过一份脑暴记录，方向是 {…}，接着聊还是直接拆 roadmap？"
-3. **确认这是新功能 brainstorm**——bug 走 `k-issue`，重构走 `k-refactor`
-4. **如果你已经能替用户写出 design 需求摘要的初稿**——当场判 case 1。揽下不属于自己的活是本阶段最大反模式
+5. **确认这是新功能 brainstorm**——bug 走 `k-issue`，重构走 `k-refactor`
+6. **如果你已经能替用户写出 design 需求摘要的初稿**——当场判 case 1。揽下不属于自己的活是本阶段最大反模式
 
 ### 开场分诊：一两轮对话判 case
 
@@ -183,7 +189,7 @@ case 1 / case 3 也能借这个动作（不强求落 brainstorm note），逻辑
 
 只在用户确认进 design 那一刻落盘——对话期间不写文件。`status` 固定 `confirmed`，没有 draft。
 
-文档模板见同目录 `reference.md` 的"feature brainstorm 模板"。frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-conventions.md` 第 1 节。
+文档模板见同目录 `reference.md` 的"feature brainstorm 模板"。frontmatter 字段口径跟 design / acceptance 共用一组，看 `shared-frontmatter.md`。
 
 **退出**：主动问"这块够清楚了可以进 design 吗？"，确认后落盘。如果愿景（用户故事 / 痛点 / 边界）已经聊透了，提示用户可以先 `k-req draft` 把愿景落成 requirement，design 会读到这份 req 做对齐。告诉用户"下一步 `k-feat-design` 会读到 `{路径}`"
 

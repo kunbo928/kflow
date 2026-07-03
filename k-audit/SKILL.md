@@ -143,5 +143,5 @@ index.md 末尾给优先级建议：
 ## 相关文档
 
 - `reference.md` — index.md / finding-NN.md 模板
-- `.kflow/reference/shared-conventions.md` — 跨工作流共享口径
+- `.kflow/reference/shared-conventions.md` — 共享口径索引，按需打开具体小文件
 - `.kflow/architecture/` — 架构偏离类发现对照源

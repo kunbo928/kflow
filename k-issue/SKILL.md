@@ -7,7 +7,7 @@ description: 修 bug 的子流程入口，把"发现问题"走到验证修复闭
 
 ## 启动必读
 
-开始任何判断或动作前，先读取 `.kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
+开始任何判断或动作前，先检查 `.kflow/attention.md` 是否存在；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。本技能只做路由，默认不读 attention 全文；执行子技能动手前会读。
 
 修 bug 直觉是"找到错的地方改了完事"，但这个直觉路径反复制造同样的麻烦：
 
@@ -99,6 +99,6 @@ issue 工作流在"看到问题"和"动手改代码"之间塞缓冲：
 ## 相关文档
 
 - `.kflow/reference/system-overview.md` — kflow 体系总览
-- `.kflow/reference/shared-conventions.md` — 跨阶段共享口径
+- `.kflow/reference/shared-conventions.md` — 共享口径索引，按需打开具体小文件
 - `.kflow/attention.md` — kflow 启动注意事项和项目硬约束
 - `.kflow/architecture/ARCHITECTURE.md` — 根因分析时可能要查

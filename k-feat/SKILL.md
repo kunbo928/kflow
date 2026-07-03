@@ -7,7 +7,7 @@ description: 新功能开发的子流程入口，把"加个 X 能力"从想法�
 
 ## 启动必读
 
-开始任何判断或动作前，先读取 `.kflow/attention.md`；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。
+开始任何判断或动作前，先检查 `.kflow/attention.md` 是否存在；缺失则视为骨架不完整，提示先补齐或运行 `k-onboard`。本技能只做路由，默认不读 attention 全文；执行子技能动手前会读。
 
 新功能流程在"需求"和"代码"之间塞了一份方案文件，让两边有交接点——AI 直接拿到需求就写代码会出三个老问题：名字跟原代码对不上、改着改着改出范围、改完不留存档。
 
@@ -110,6 +110,6 @@ brainstorm 是讨论层独立入口，会分诊：case 1（清楚 → 直接 des
 ## 相关文档
 
 - `.kflow/reference/system-overview.md` — kflow 体系总览
-- `.kflow/reference/shared-conventions.md` — 跨阶段共享口径、目录结构、checklist 生命周期
+- `.kflow/reference/shared-conventions.md` — 共享口径索引；路径看 `shared-paths.md`，checklist 看 `shared-checklist.md`
 - `.kflow/attention.md` — kflow 启动注意事项和项目硬约束
 - 项目架构总入口 — 方案设计阶段需要查

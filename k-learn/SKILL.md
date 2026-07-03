@@ -16,7 +16,7 @@ description: 把踩过的坑或好做法沉淀成可检索的 learning 文档，
 - **坑点轨道**（pitfall）：记录问题 / 根因 / 解法，防止下次再掉进同一个坑
 - **知识轨道**（knowledge）：记录最佳实践 / 工作流改进 / 可复用模式
 
-两者都写入 `.kflow/compound/`（共享目录见 `shared-conventions.md` 第 1 节"归档类文档"）。本技能产出 frontmatter 带 `doc_type: learning`，命名 `YYYY-MM-DD-learning-{slug}.md`。
+两者都写入 `.kflow/compound/`（共享目录见 `shared-frontmatter.md`"归档类文档"）。本技能产出 frontmatter 带 `doc_type: learning`，命名 `YYYY-MM-DD-learning-{slug}.md`。
 
 ---
 
@@ -57,7 +57,7 @@ frontmatter / 正文模板 / 完整示例见同目录 `reference.md`。
 
 ### Phase 1.5：查重叠与意图分流（必做）
 
-按 `shared-conventions.md` §6 第 5/6 条：
+按 `shared-archive.md` 查重规则：
 
 - 含"改 / 更新 / 补充 / 某条 learning"或指向某份旧文档 → 直接走**更新已有**
 - 否则用搜索工具按 `--filter tags~=` 或 `--query` 查一遍，命中相近旧文档时把候选列给用户
@@ -89,7 +89,7 @@ AI 一次性起草完整文档（YAML frontmatter + 所有正文节）。一次�
 
 - 新建：写入 `compound/YYYY-MM-DD-learning-{slug}.md`（日期取**归档当天**），frontmatter 带 `doc_type: learning`
 - 更新：写回 Phase 1.5 定位的原文件 + `updated: YYYY-MM-DD`
-- supersede：按 `shared-conventions.md` §6 第 5 条处理
+- supersede：按 `shared-archive.md` supersede 规则处理
 
 ### Phase 5：可发现性检查
 
@@ -119,7 +119,7 @@ python .kflow/tools/search-yaml.py --dir .kflow/compound --filter doc_type=learn
 
 ## 守护规则
 
-> 归档类共享规则见 `shared-conventions.md` 第 6 节。本技能特有：
+> 归档类共享规则见 `shared-archive.md`。本技能特有：
 
 1. **不混入 spec**——learning 不放进 `features/` 或 `issues/`；spec 也不放进 `compound/`
 2. **只认自己的 doc_type**——只读写 `doc_type: learning`

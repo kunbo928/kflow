@@ -11,10 +11,12 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
 
 ## 两条路径
 
-| 路径 | 适用 | 产出 |
-|---|---|---|
-| **空仓库** | 仓库内无 spec 类文档，也没有 `.kflow/` | 完整骨架 + 必要骨架文件 |
-| **迁移** | 仓库内有零散文档 / `docs/` / 部分 `.kflow/` 结构 | 审计报告 + 迁移映射方案（用户逐条确认）+ 落盘 |
+
+| 路径      | 适用                                   | 产出                        |
+| ------- | ------------------------------------ | ------------------------- |
+| **空仓库** | 仓库内无 spec 类文档，也没有 `.kflow/`          | 完整骨架 + 必要骨架文件             |
+| **迁移**  | 仓库内有零散文档 / `docs/` / 部分 `.kflow/` 结构 | 审计报告 + 迁移映射方案（用户逐条确认）+ 落盘 |
+
 
 启动后**先扫一次自动判断**，不要让用户选——TA 大概率不知道项目里现有哪些文档。扫描结果模糊（如只有 README）就明说判断依据并问用户。
 
@@ -22,7 +24,7 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
 
 ## 标准骨架（目标状态）
 
-> 共享路径与命名约定的权威版本是项目里的 `.kflow/reference/shared-conventions.md`——本技能从技能包复制过去。下面只列 onboard 创建 / 检查的骨架文件。
+> 共享路径与命名约定的权威版本是项目里的 `.kflow/reference/shared-paths.md`——本技能从技能包复制过去。下面只列 onboard 创建 / 检查的骨架文件。
 
 ```
 .kflow/
@@ -33,16 +35,25 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
 ├── roadmap/                    规划层聚合根
 ├── features/                   feature 聚合根
 ├── issues/                     issue 聚合根
+├── refactors/                  refactor 聚合根
+├── brainstorms/                开放脑暴聚合根
 ├── compound/                   沉淀类统一目录（learning / trick / decision / explore）
 ├── tools/                      跨工作流共享脚本（onboard 释放）
 │   ├── search-yaml.py
 │   └── validate-yaml.py
 └── reference/                  跨子技能共享参考（onboard 释放）
-    ├── shared-conventions.md
+    ├── shared-conventions.md      # 轻量索引
+    ├── shared-paths.md
+    ├── shared-frontmatter.md
+    ├── shared-checklist.md
+    ├── shared-roadmap-feature.md
+    ├── shared-closeout.md
+    ├── shared-archive.md
+    ├── shared-reflection.md
+    ├── shared-testing.md
     ├── tools.md
     └── maintainer-notes.md
 ```
-
 
 ---
 
@@ -69,14 +80,13 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
 
 按下面顺序执行，**不等用户逐步确认**——骨架是整体一次性的：
 
-- `.kflow/{requirements,roadmap,features,issues,compound}/.gitkeep`
+- `.kflow/{requirements,roadmap,features,issues,refactors,brainstorms,compound}/.gitkeep`
 - `.kflow/attention.md`（最小骨架模板见同目录 `reference.md`）
 - `.kflow/architecture/ARCHITECTURE.md`（占位模板见同目录 `reference.md`）
 - `.kflow/tools/`（用 `cp -rf` / `Copy-Item -Recurse -Force` 整目录拷贝技能包 `k-onboard/tools/`，**不要 Read 再 Write**）
 - `.kflow/reference/`（同上）
 
 > **落盘用 shell 整目录覆盖**，不要 Read 再 Write——这两个目录是机器共享资产，Read+Write 会截断大文件、改缩进、吃空行，还慢费 token。具体命令见迁移路径步骤 
-
 
 **步骤 3：attention.md 提醒**
 
@@ -94,11 +104,13 @@ attention.md 已创建但默认只有空骨架。汇报时提醒用户：有编�
 
 **步骤 1：生成审计报告**
 
-| 现有文件 | 推测内容类型 | 建议归入 kflow | 置信度 |
-|---|---|---|---|
-| `docs/DESIGN.md` | 项目架构 | `.kflow/architecture/ARCHITECTURE.md` | 高 |
-| `docs/feature-auth.md` | 功能设计稿 | `.kflow/features/YYYY-MM-DD-auth/auth-design.md` | 中 |
-| `SPEC.md` | 功能需求？ | 需用户确认 | 低 |
+
+| 现有文件                   | 推测内容类型 | 建议归入 kflow                                       | 置信度 |
+| ---------------------- | ------ | ------------------------------------------------ | --- |
+| `docs/DESIGN.md`       | 项目架构   | `.kflow/architecture/ARCHITECTURE.md`            | 高   |
+| `docs/feature-auth.md` | 功能设计稿  | `.kflow/features/YYYY-MM-DD-auth/auth-design.md` | 中   |
+| `SPEC.md`              | 功能需求？  | 需用户确认                                            | 低   |
+
 
 **置信度**：高 = 语义明确匹配；中 = 可推断有歧义；低 = 不明确或映射多个位置都合理。
 
@@ -160,14 +172,14 @@ Copy-Item -Recurse -Force <技能源>\k-onboard\reference\*  .kflow\reference\
 
 ## 退出条件
 
-- [ ] `.kflow/` 八个子目录都存在
-- [ ] `.kflow/attention.md` 已建
-- [ ] `.kflow/tools/`、`.kflow/reference/` 已从技能包复制；`skills_path` 已确定（`.claude/skills/` 或 `.agents/skills/`）
-- [ ] `.kflow/architecture/ARCHITECTURE.md` 已建
-- [ ] `AGENTS.md` 已生成
-- [ ] 迁移路径：每条映射都有明确处理结果（迁移 / 保留原位）
-- [ ] 迁移路径：没有未经确认就移动的文件
-- [ ] 验收汇报已给出
+- `.kflow/` 标准子目录都存在
+- `.kflow/attention.md` 已建
+- `.kflow/tools/`、`.kflow/reference/` 已从技能包复制；`skills_path` 已确定（`.claude/skills/` 或 `.agents/skills/`）
+- `.kflow/architecture/ARCHITECTURE.md` 已建
+- `AGENTS.md` 已生成
+- 迁移路径：每条映射都有明确处理结果（迁移 / 保留原位）
+- 迁移路径：没有未经确认就移动的文件
+- 验收汇报已给出
 
 ---
 
@@ -187,6 +199,7 @@ Copy-Item -Recurse -Force <技能源>\k-onboard\reference\*  .kflow\reference\
 ## 相关文档
 
 - `.kflow/reference/system-overview.md` — kflow 体系总览
-- `.kflow/reference/shared-conventions.md` — 目录结构和共享口径的权威版本
+- `.kflow/reference/shared-conventions.md` — 共享口径索引，按需路由到小 reference 文件
+- `.kflow/reference/shared-paths.md` — 目录结构和命名规则
 - `.kflow/attention.md` — kflow 技能启动必读的项目注意事项
 - `.kflow/architecture/ARCHITECTURE.md` — 架构总入口骨架

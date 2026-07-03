@@ -20,7 +20,7 @@ description: feature 流程阶段 3——验收闭环：对照 design 核实现 
 
 **没产出报告 = 工作流未完成**。后人查"上次这个功能验收时确认了哪些行为"，没报告就只能翻 git diff 重新推断。
 
-> 共享路径与命名约定看 `.kflow/reference/shared-conventions.md` 第 0 节。
+> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`。
 
 ---
 
@@ -62,7 +62,7 @@ description: feature 流程阶段 3——验收闭环：对照 design 核实现 
 
 ## 验收报告模板
 
-逐节填写**别跳节**。报告路径在 feature 目录下（位置看 `shared-conventions.md` 第 0 节）。
+逐节填写**别跳节**。报告路径在 feature 目录下（位置看 `shared-paths.md`）。
 
 ```markdown
 # {功能名称} 验收报告
@@ -176,7 +176,7 @@ req 是能力愿景层，本节是 draft → current 升级和 backfill 的触�
   - 同步 `{roadmap}-roadmap.md` 主文档第 3 节子 feature 清单的对应条目状态
 - [ ] 两字段不一致（只填了一个）→ 停下来补齐或澄清
 
-衔接协议看 `shared-conventions.md` 第 2.5 节。和归并 / req 同规则：实际写文件的动作。
+衔接协议看 `shared-roadmap-feature.md`。和归并 / req 同规则：实际写文件的动作。
 
 ## 8. attention.md 候选盘点
 
@@ -223,7 +223,7 @@ req 是能力愿景层，本节是 draft → current 升级和 backfill 的触�
 
 告诉用户："验收报告已就绪，架构文档已归并，k-feat 工作流走完。后续 BUG 走 issue 流程。"
 
-按 `shared-conventions.md` 第 3 节收尾推荐顺序逐项一句话提示（用户说"不用"立刻跳过）：
+按 `shared-closeout.md`收尾推荐顺序逐项一句话提示（用户说"不用"立刻跳过）：
 
 1. 复用价值的坑点 / 经验 → "需要沉淀 learning 吗？（`k-learn`）"
 2. 长期约束 / 技术选型 → "需要归档决定吗？（`k-decide`）"
@@ -233,7 +233,7 @@ req 是能力愿景层，本节是 draft → current 升级和 backfill 的触�
 5. 第 8 节有 attention.md 候选 → 逐条问"候选 X 加到 attention.md 吗？" 用户明确同意 → 触发 `k-note` 走分节归类 / 查重 / 软上限检查（不在 accept 里手写，避免和 k-note 各搞一套口径）；**一次一条**
 6. 最后问是否代为 scoped-commit
 
-收尾提交规则看 `shared-conventions.md` 第 4 节。提交范围：功能代码 + 方案 doc + 验收报告 + 本次实际更新的架构 doc / req doc / roadmap items.yaml + 主文档。
+收尾提交规则看 `shared-closeout.md`。提交范围：功能代码 + 方案 doc + 验收报告 + 本次实际更新的架构 doc / req doc / roadmap items.yaml + 主文档。
 
 ---
 

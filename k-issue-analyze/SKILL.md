@@ -13,7 +13,7 @@ description: issue 流程阶段 2——读 report + 读代码定位根因、评�
 
 分析完不直接动手——给用户看 2-3 种修复方案让 TA 选。原因：根因往往有多种修法，影响面 / 副作用 / 改动范围各不相同，这是用户该拍板的事。
 
-> 共享路径与命名约定看 `.kflow/reference/shared-conventions.md` 第 0 节和 `k-issue` 的"文件放哪儿"。
+> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`和 `k-issue` 的"文件放哪儿"。
 
 ---
 

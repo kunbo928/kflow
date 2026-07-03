@@ -28,7 +28,7 @@ Glob `.kflow/` 发现可用目录和文档，按需取用：
   ```
 - **`requirements/`** — 有相关 req 时读边界
 - **`features/`** — 有同类 feature 时参考其 design
-- **`reference/`** — shared-conventions.md / tools.md
+- **`reference/`** — shared-conventions.md 索引 / tools.md
 
 ---
 
@@ -86,6 +86,10 @@ design / implement 的硬约束在 fastforward 的精简版。没 design doc 不
 
 冒出 `if (特殊情况) { 特殊处理 }` → **停**。这种分支基本只因为思路没覆盖到这种情况，硬写下去得到的是"为让代码能跑而加的特殊逻辑"。要么改数据结构让它不需要特殊处理，要么明确承认是边界情况并注释说明为什么特殊。
 
+### 测试必落
+
+fastforward 不要求严格 TDD，但**必须有运行时测试**。不强制先后顺序，但代码写完时必须有对应测试通过。"手工验证过了"不算。完整测试口径看 `.kflow/reference/shared-testing.md`。
+
 ### 反射信号触发就停
 
 - 往 > 300 行文件追加 / 往 > 10 个方法的类加方法
@@ -95,7 +99,7 @@ design / implement 的硬约束在 fastforward 的精简版。没 design doc 不
 - 往 `utils.ts` / `helpers.ts` 万能 util 堆东西
 - 新起概念名时先 grep 同名 / 近义命名
 
-完整清单看 `.kflow/reference/shared-conventions.md` 第 7 节。
+完整清单看 `.kflow/reference/shared-reflection.md`。
 
 ---
 
@@ -168,6 +172,7 @@ tags: [...]
 ## 退出条件
 
 - [ ] 代码写完且用户确认效果 OK
+- [ ] 有对应的运行时测试通过（不允许纯手工验证替代）
 - [ ] `{slug}-ff-note.md` 已落盘且四节填齐（顺手发现可省）
 - [ ] 没有未对齐的"顺手发现"（都进 ff-note 末节，留给后续）
 
@@ -175,12 +180,12 @@ tags: [...]
 
 ## 收尾提交
 
-按 `.kflow/reference/shared-conventions.md` 第 4 节"scoped-commit"规则执行。本通道：
+按 `.kflow/reference/shared-closeout.md`"scoped-commit"规则执行。本通道：
 
 - **提交范围**：本次代码改动 + `{slug}-ff-note.md`
 - ff-note 落盘后告诉用户"已就绪，是否代为 commit？"，用户明确同意才执行
 
-按 `shared-conventions.md` 第 3 节"feature-ff"收尾推荐顺序逐项一句话提示（用户"不用"立即跳过）：
+按 `shared-closeout.md`"feature-ff"收尾推荐顺序逐项一句话提示（用户"不用"立即跳过）：
 
 1. 暴露的坑 → "沉淀 learning？（`k-learn`）"
 2. 拍板的长期约束 → "归档决定？（`k-decide`）"
@@ -194,6 +199,7 @@ tags: [...]
 - 把搜到的 learning / decision 当"参考"而不是"约束"——decision 拍过板，违反要么重新 decision 要么别做
 - 开始写 design doc——fastforward 就是不写 design
 - 发现任务变复杂还硬在 fastforward 推——切回成本远低于带着错误方案改到底
+- **写完代码没有测试就宣告完成**——fastforward 也必须有运行时测试，"手工验证过了"不算
 - **动手前就建 ff-note 空壳**——破坏 fastforward 的轻体感，必须代码 + 验证完才回写
 - **把 ff-note 写成迷你 design / 迷你 acceptance**——四节加一起十几行就够，多了说明这事不该走 fastforward
 - **跳过 ff-note 直接 commit**——和 issue-ff 强制 fix-note 同样的理由：没记录后人追溯不了

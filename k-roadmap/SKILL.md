@@ -23,7 +23,7 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 
 **为什么文件夹不是单文件**：拆解过程会产生草稿 / 调研 / 方案对比 / 白板转述，塞一份 md 会乱又舍不得删。每个 roadmap 一个子目录，主文档对外口径，旁边 `drafts/` 随便堆。
 
-> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`。主文档和 items 完整模板看同目录 `reference.md`。
+> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`。读取材料遵守 `.kflow/reference/shared-token-budget.md`：先看索引 / 摘要 / 相关节，准备整体改写时才读全文。主文档和 items 完整模板看同目录 `reference.md`。
 
 ---
 
@@ -76,13 +76,13 @@ description: 把"大到塞不进单个 feature"的需求做成完整事前规划
 
 ### Phase 2：读取材料
 
-**共同必读**：`.kflow/attention.md` + 用户素材 + `roadmap/` 其他 roadmap（防重复）+ `requirements/` 相关 req + `architecture/` 相关 doc。
+**共同必读**：`.kflow/attention.md` + 用户素材。`roadmap/` 其他 roadmap 先看目录名 / frontmatter / summary 防重复；`requirements/` 和 `architecture/` 只打开相关 req / doc 的相关节。
 
 **按情况读**：
 - 相关 compound 沉淀：`python .kflow/tools/search-yaml.py --dir .kflow/compound --query "{大需求关键词}"`
 - 已有相关 feature 方案
 
-**update 额外**：当前主文档全文 + items.yaml 当前状态 + 已启动 / 完成的子 feature 的 design / acceptance。
+**update 额外**：当前主文档先读目录、frontmatter、要改章节 + items.yaml 当前状态；已启动 / 完成的子 feature 先读 frontmatter、summary、状态和相关设计 / 验收节。改接口契约或发现状态不一致时再读对应全文。
 
 ### Phase 3：拆解与起草
 

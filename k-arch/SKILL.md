@@ -24,7 +24,7 @@ description: 维护 `.kflow/architecture/` 这份只记现状的系统地图，�
 - **代码复述**——每节都说"这里有什么"，不说"为什么这么分"，信息量等于 `ls -R`
 - **检查时看一眼感觉没问题**——没给具体位置证据
 
-> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`。文档结构模板、check 覆盖项、报告格式看同目录 `reference.md`。
+> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`。读取材料遵守 `.kflow/reference/shared-token-budget.md`：先索引 / 摘要 / 相关节，只有改写整篇或证据冲突时读全文。文档结构模板、check 覆盖项、报告格式看同目录 `reference.md`。
 
 ---
 
@@ -80,12 +80,12 @@ Phase 6：落盘（backfill/update）或 等用户拍板（check）
 
 ### Phase 2：读取材料
 
-**共同必读**：`shared-paths.md` + `ARCHITECTURE.md` + `architecture/` 下其他文档。
+**共同必读**：`shared-paths.md` + `ARCHITECTURE.md` 索引。`architecture/` 下其他文档先看文件名 / frontmatter / 索引命中，只打开目标相关文档。
 
-**backfill / update 额外**（详见 `reference.md` "读取清单"）：目标模块代码入口和核心文件 + 用户素材 + 相关 compound 沉淀（decision / explore / learning）+ 相关已有 feature 方案。**update 专项**：当前 doc 全文 + `last_reviewed` 之后的代码变更（`git log` 粗扫）。
+**backfill / update 额外**（详见 `reference.md` "读取清单"）：目标模块代码入口和核心文件 + 用户素材 + 相关 compound 沉淀（decision / explore / learning）+ 相关已有 feature 方案。compound / 历史 feature 先检索摘要，只读最高相关命中。**update 专项**：当前 doc 先读目录和要改章节；准备整体重写或发现跨节矛盾时再读全文。`last_reviewed` 之后的代码变更用 `git log` / `diff --stat` 先收窄，再读相关 diff。
 
 **check 额外**（按子目标）：
-- `design-internal` / `design-vs-code`：方案 doc 全文 + 架构相关 doc
+- `design-internal` / `design-vs-code`：方案 doc 先读 frontmatter / 目录 / 第 0-4 节相关小节；只有做完整一致性审计或发现矛盾时读全文 + 架构相关 doc
 - `design-vs-code` 再额外：与 design 第 2/3 节直接对应的代码
 - `architecture-folder-internal`：用户圈定的几份 doc + 索引 + 顺藤摸到的被引用文档（不扩展到代码）
 

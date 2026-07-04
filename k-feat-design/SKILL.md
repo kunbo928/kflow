@@ -11,7 +11,7 @@ description: feature 流程阶段 1——为新功能起草 {slug}-design.md 作
 
 这一阶段的产出是一份方案文件 `{slug}-design.md`，加上从中抽出的行动清单 `{slug}-checklist.yaml`。这两份东西后面会被两个阶段消费——implement 照着推进、acceptance 照着核对，所以这里写错或写漏，下游就跟着错。
 
-> 共享路径和命名约定看 `.kflow/reference/shared-paths.md`。本阶段一般 feature 目录已经由 brainstorm 创建好了；没有的话在这一步建。
+> 共享路径和命名约定看 `.kflow/reference/shared-paths.md`。读取材料遵守 `.kflow/reference/shared-token-budget.md`，先用索引 / 检索 / 相关节收窄，不批量读历史正文。本阶段一般 feature 目录已经由 brainstorm 创建好了；没有的话在这一步建。
 
 本阶段有三个入口：
 
@@ -145,11 +145,11 @@ design 只管"编排-计算分离"里的编排那一侧：**这次 feature 在�
    - design `status=draft` 各节基本完整 → 跳到本流程"5. 整体 review"
    - design 部分节缺失 → 补缺失节，汇报"上次写到 X，补齐统一给你 review"
    - design `status=approved` → 别默认覆盖，问用户接着改还是另起 slug
-2. **扫 .kflow/ 全局输入**——Glob `.kflow/` 发现可用目录和文档类型，按类取用：
+2. **扫 .kflow/ 全局输入**——Glob `.kflow/` 发现可用目录和文档类型，按类取用；默认只读 L0/L1 信息，命中后再读相关节：
    - `architecture/` → 读 ARCHITECTURE.md + 索引 + 相关子系统 doc，关注名词复用和流程级约束
    - `requirements/` → 有对应 req：frontmatter `requirement` 填 slug，读"用户故事 / 边界"两节；新能力首次出现 → 触发 `k-req draft` 起草愿景 req，frontmatter `requirement` 填新 slug；纯重构 / 技术债留空
-   - `compound/` → 用 `search-yaml.py --dir .kflow/compound` 搜相关 decision / explore / trick / learning；命中冲突 decision 必须正面回应
-   - `features/` → 搜历史 design 有无同类 feature 可参考
+   - `compound/` → 用 `search-yaml.py --dir .kflow/compound` 搜相关 decision / explore / trick / learning；默认只读最高相关 1-3 个命中，命中冲突 decision 必须正面回应
+   - `features/` → 搜历史 design 有无同类 feature 可参考；先读 frontmatter / summary / 相关节，不批量读全文
    - 其余目录按内容类型自行判断
 3. **读需求相关的现有代码**——读哪些文件由需求线索决定
 

@@ -13,7 +13,7 @@ description: issue 流程阶段 3——按已确认根因和方案定点修复�
 
 fix 阶段最容易出问题的不是改代码本身，而是**改的过程中冒出的"顺手"冲动**——顺手优化、顺手重构、顺手加抽象。每项单独看说得通，但合在一个 PR 里让别人分不清"这次到底为了修 bug 改了什么"。
 
-> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`和 `k-issue` 的"文件放哪儿"。
+> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`和 `k-issue` 的"文件放哪儿"。读取材料遵守 `.kflow/reference/shared-token-budget.md`，先读选定方案和定位证据，必要时再升级到全文。
 
 ---
 
@@ -22,7 +22,7 @@ fix 阶段最容易出问题的不是改代码本身，而是**改的过程中�
 ### 标准路径（有 analysis）
 
 1. **方案已确认**——读 analysis，确认 `doc_type=issue-analysis` 且 `status=confirmed`，第 5 节用户选定了哪个方案
-2. **上下文读全**：analysis 全文 + report 全文 + analysis 第 1 节定位的所有代码 + `.kflow/attention.md` + 沉淀目录搜索：
+2. **上下文分级读取**：analysis 先读 frontmatter + 第 1 节定位 + 第 4 节影响面 + 第 5 节用户选定方案；report 先读复现步骤 / 期望行为；analysis 第 1 节定位的代码只读相关函数；`.kflow/attention.md` + 沉淀目录搜索。analysis/report 字段矛盾、修复范围不清、或要写 fix-note 时再读对应全文：
    - `python .kflow/tools/search-yaml.py --dir .kflow/compound --filter doc_type=trick --filter status=active --query "{关键词}"`——确认修复方式不违背已有库用法 / 模式
    - 同样命令换 `--filter doc_type=explore`——确认修复点和已有证据不冲突
 3. **确认起点**——告诉用户"我将按方案 X 修改 {文件列表}，开始修复"，等用户确认才动手
@@ -35,7 +35,7 @@ fix 阶段最容易出问题的不是改代码本身，而是**改的过程中�
 2. **给修复方案**——改哪里、怎么改（一两句话，不写完整分析文档）
 3. **等用户明确说"对，就这样改"才动手**——不允许"我觉得对，直接改了"
 4. 读 `.kflow/attention.md`
-5. **补搜沉淀目录**——快速通道也要查一遍 `compound/`（trick + explore），避免误把已知边界条件当新问题
+5. **补搜沉淀目录**——快速通道也要查一遍 `compound/`（trick + explore），默认只读最高相关命中，避免误把已知边界条件当新问题
 
 ---
 

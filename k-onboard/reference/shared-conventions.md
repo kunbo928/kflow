@@ -16,6 +16,7 @@
 | compound 归档检索 / 查重 / supersede | `shared-archive.md` |
 | 写代码时的反射检查 | `shared-reflection.md` |
 | TDD / 回归 / 集成测试口径 | `shared-testing.md` |
+| token 预算 / 读取分级 / 输出节制 | `shared-token-budget.md` |
 | 共享工具命令 | `tools.md` |
 
 ## 兼容旧引用
@@ -36,3 +37,4 @@
 - 先索引，后正文；先路由，后深读。
 - 没有命中具体需求，不打开大模板 / 示例 / 历史正文。
 - 子技能正文只写本阶段特有规则，共享规则放上面的小文件。
+- 读文档默认遵守 `shared-token-budget.md` 的 L0→L3 分级；需要全文时说明触发条件。

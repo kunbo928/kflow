@@ -109,6 +109,7 @@ AI 最常见的问题是一口气铺几百行代码才让人看——等发现�
 - `.kflow/reference/shared-checklist.md` — `{slug}-checklist.yaml` 生命周期
 - `.kflow/reference/shared-closeout.md` — 收尾 commit 约定
 - `.kflow/reference/shared-archive.md` — 归档类共享规则
+- `.kflow/reference/shared-token-budget.md` — token 预算与读取分级
 - `.kflow/reference/tools.md` — `search-yaml.py` / `validate-yaml.py` 用法
 - `.kflow/reference/maintainer-notes.md` — 断点恢复、新增子工作流的登记
 

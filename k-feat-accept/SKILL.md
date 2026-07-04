@@ -20,7 +20,7 @@ description: feature 流程阶段 3——验收闭环：对照 design 核实现 
 
 **没产出报告 = 工作流未完成**。后人查"上次这个功能验收时确认了哪些行为"，没报告就只能翻 git diff 重新推断。
 
-> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`。
+> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`。读取材料遵守 `.kflow/reference/shared-token-budget.md`，先按验收节读取相关章节和代码证据，必要时再升级到全文。
 
 ---
 
@@ -45,7 +45,7 @@ description: feature 流程阶段 3——验收闭环：对照 design 核实现 
 1. **代码确实实现到位**——git status / 最近提交看到本功能改动，否则退回 implement
 2. **方案 doc 完整**——frontmatter `doc_type=feature-design` / `feature` 一致 / `status=approved` / `summary` 非空 / `tags` ≥ 2；标准 design 第 0/1/2/3 节 + 第 4 节已填写
 3. **`{slug}-checklist.yaml`**——存在且 `feature` 一致；`steps` 全 `done`（有 `pending` 退回 implement）；`checks` 非空全 `pending`
-4. **上下文读全**——方案 doc 全文（重点：第 1 节明确不做、2.1 接口示例、2.2 流程级约束、2.3 挂载点、第 3 节场景）+ checklist + 第 4 节提到的所有架构 doc + 本次代码改动（git log / diff）
+4. **上下文分级读取**——先读方案 doc frontmatter / 目录 / 第 1 节明确不做 / 2.1 接口示例 / 2.2 流程级约束 / 2.3 挂载点 / 第 3 节场景 + checklist；第 4 节提到的架构 doc 先读相关节；本次代码改动先看 `git diff --stat` / 文件列表，再读对应 diff。发现跨节矛盾、要回填方案、或要改写目标 doc 时再读全文。
 5. **断点恢复**——`{slug}-acceptance.md` 已存在且部分填好 → 从下一个未完成节继续，跳过 checks 中已 `passed` 的项；汇报"上次做到第 X 节，从第 Y 节继续"
 
 **Fastforward design 验收报告映射表**：

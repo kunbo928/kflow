@@ -51,6 +51,7 @@ description: 把新仓库或有零散文档的仓库接入 kflow 体系——两
     ├── shared-archive.md
     ├── shared-reflection.md
     ├── shared-testing.md
+    ├── shared-token-budget.md
     ├── tools.md
     └── maintainer-notes.md
 ```
@@ -200,6 +201,7 @@ Copy-Item -Recurse -Force <技能源>\k-onboard\reference\*  .kflow\reference\
 
 - `.kflow/reference/system-overview.md` — kflow 体系总览
 - `.kflow/reference/shared-conventions.md` — 共享口径索引，按需路由到小 reference 文件
+- `.kflow/reference/shared-token-budget.md` — token 预算与读取分级
 - `.kflow/reference/shared-paths.md` — 目录结构和命名规则
 - `.kflow/attention.md` — kflow 技能启动必读的项目注意事项
 - `.kflow/architecture/ARCHITECTURE.md` — 架构总入口骨架

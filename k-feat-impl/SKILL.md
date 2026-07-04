@@ -11,7 +11,7 @@ description: feature 流程阶段 2——按 {slug}-checklist.yaml 里 design �
 
 到这一步用户已经在方案上签过字了，你的活是把方案变成代码。容易出问题的不是写代码本身，而是**实现路上发现方案没覆盖到的情况时怎么办**——硬冲下去就把方案当摆设了。下面整套规则就是为了让"停下来"成为默认动作。
 
-> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`。
+> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`。读取材料遵守 `.kflow/reference/shared-token-budget.md`，实现阶段只读方案相关节和当前 step 需要的代码。
 
 ---
 
@@ -62,9 +62,9 @@ frontmatter：`doc_type=feature-design` / `feature` 一致 / `status=approved` /
 - `steps` 非空（design 已产出，paradigm 维度切片，4-8 步）；`checks` 非空
 - 不存在 → 退回 `k-feat-design` 生成
 
-### 3. 把上下文读全
+### 3. 把上下文分级读够
 
-- 方案 doc 全文（标准 design 重点：第 1 节、2.1/2.2/2.3/2.4、3）
+- 方案 doc 先读 frontmatter + 标准 design 第 1 节、2.1/2.2/2.3/2.4、3（fastforward 读第 0-3 节）；只有要回填方案或发现跨节矛盾时读全文
 - `{slug}-checklist.yaml`、需求来源（用户描述 + brainstorm note）、`.kflow/attention.md`
 - 第 2.1 节接口示例的来源位置 / fastforward 第 1 节改动点提到的代码文件——读相关函数即可
 

@@ -13,7 +13,7 @@ description: issue 流程阶段 2——读 report + 读代码定位根因、评�
 
 分析完不直接动手——给用户看 2-3 种修复方案让 TA 选。原因：根因往往有多种修法，影响面 / 副作用 / 改动范围各不相同，这是用户该拍板的事。
 
-> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`和 `k-issue` 的"文件放哪儿"。
+> 共享路径与命名约定看 `.kflow/reference/shared-paths.md`和 `k-issue` 的"文件放哪儿"。读取材料遵守 `.kflow/reference/shared-token-budget.md`，先按报告字段和复现线索定位代码，不批量读无关历史文档。
 
 ---
 
@@ -23,10 +23,11 @@ description: issue 流程阶段 2——读 report + 读代码定位根因、评�
 2. **断点恢复**——`{slug}-analysis.md` 已存在则检查 5 节哪些已填：
    - 全部填满但 `status=draft` → 跳到 checkpoint
    - 部分填写 → 汇报"上次做到第 X 步，从第 Y 步继续"
-3. **把上下文读全**：
-   - 问题报告全文 + `.kflow/attention.md`
+3. **把上下文分级读够**：
+   - 问题报告先读 frontmatter + 现象 / 复现步骤 / 期望行为 / 涉及模块；字段矛盾或要改写报告时再读全文
+   - `.kflow/attention.md`
    - 报告里提到的相关文件（用 Glob / Grep 找别只凭描述）
-   - **扫 .kflow/ 全局**——Glob `.kflow/` 发现可用输入，按需取用：`architecture/`（涉及跨模块时读 ARCHITECTURE.md）、`compound/`（用 search-yaml.py 搜相关 trick / explore / learning，命中在分析开头标注引用）、`requirements/`（涉及能力边界时读）
+   - **扫 .kflow/ 全局**——Glob `.kflow/` 发现可用输入，按需取用：`architecture/`（涉及跨模块时先读 ARCHITECTURE.md 索引，再读相关 doc 小节）、`compound/`（用 search-yaml.py 搜相关 trick / explore / learning，默认只读最高相关 1-3 个命中）、`requirements/`（涉及能力边界时读相关故事 / 边界节）
 
 ---
 

@@ -3,3 +3,17 @@ __pycache__
 *.pyc
 .agents
 .temp
+# Only ignore VitePress generated output; source docs are tracked
+docs/site/.vitepress/dist/
+docs/site/.vitepress/cache/
+node_modules/
+dist/
+
+.scratch
+.agents
+.reasonix
+docs/adr/
+docs/agents/
+CONTEXT.md
+reasonix.toml
+

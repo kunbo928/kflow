@@ -6,7 +6,7 @@
 
 <p>
   <img src="https://img.shields.io/badge/status-beta-F59E0B?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/skills-25-6366F1?style=flat-square" alt="Skills"/>
+  <img src="https://img.shields.io/badge/skills-26-6366F1?style=flat-square" alt="Skills"/>
   <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License"/>
 </p>
 
@@ -16,13 +16,19 @@
 
 ## 安装
 
-在**目标项目**根目录执行（[skills CLI](https://github.com/vercel-labs/skills)）：
+> ⚠️ kflow CLI 正在开发中，以下安装方式将在首次 npm 发布后可用。当前仍使用 [skills CLI](https://github.com/vercel-labs/skills)：
+> ```bash
+> npx skills add kunbo928/kflow
+> ```
+
+开发完成后，在**目标项目**根目录执行：
 
 ```bash
-npx skills add kunbo928/kflow
+npm install kflow --save-dev
+npx kflow init
 ```
 
-装完后**新开 Claude Code 会话**：
+`kflow init` 生成 `.kflow/` 骨架并安装技能文件，之后在 AI 编码工具中使用：
 
 ```bash
 /k-onboard    # 首次：生成 .kflow/ 骨架
@@ -33,8 +39,9 @@ npx skills add kunbo928/kflow
 <summary>更多选项</summary>
 
 ```bash
-npx skills add kunbo928/kflow --list       # 查看技能列表
-npx skills add kunbo928/kflow -g           # 全局安装（跨项目可用）
+npx kflow init --platform codex    # 指定平台（默认 codex）
+npx kflow search <query>           # 搜索技能
+npx kflow validate                 # 校验项目结构
 ```
 
 </details>
@@ -43,7 +50,7 @@ npx skills add kunbo928/kflow -g           # 全局安装（跨项目可用）
 
 ## 技能总览
 
-25 个技能按软件活动分组，覆盖完整开发闭环。
+26 个技能按软件活动分组，覆盖完整开发闭环。
 
 | 分组 | 技能 | 用途 |
 |------|------|------|
@@ -125,7 +132,7 @@ kflow 把软件活动建模成 6 个实体，走 3 条流程。实体回答"项�
 - `requirements/` `architecture/` 是**长效档案**（只记现状），`roadmap/` 是**规划层**，刻意分开
 - `features/` `issues/` `refactors/` 用 `YYYY-MM-DD-{slug}/` 一个目录装齐所有相关产物
 - `compound/` 是唯一的知识沉淀目录，按 `doc_type` 区分而非分目录——好搜
-- `reference/` 是跨 skill 共享口径，改 `k-onboard/reference/` 模板，新项目 onboard 自动带上新版
+- `reference/` 是跨 skill 共享口径，改 `templates/` 模板，新项目 onboard 自动带上新版
 
 </details>
 

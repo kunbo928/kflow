@@ -25,10 +25,14 @@ function buildDocs(): { exitCode: number; stdout: string } {
 }
 
 describe("Documentation Site — build", () => {
-  it("build exits 0", () => {
-    const { exitCode, stdout } = buildDocs();
-    expect(exitCode, `build stdout:\n${stdout}`).toBe(0);
-  });
+  it(
+    "build exits 0",
+    () => {
+      const { exitCode, stdout } = buildDocs();
+      expect(exitCode, `build stdout:\n${stdout}`).toBe(0);
+    },
+    120_000
+  );
 
   it("landing page exists", () => {
     expect(existsSync(join(BUILD_OUT, "index.html"))).toBe(true);

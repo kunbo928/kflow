@@ -11,9 +11,10 @@ describe("npm package contents", () => {
       string,
       unknown
     >;
-    expect(pkg.name).toBe("kflow");
+    expect(pkg.name).toBe("@kunbo0928/kflow");
     expect(pkg.bin).toBeDefined();
     expect((pkg.bin as Record<string, string>)["kflow"]).toBeTruthy();
+    expect((pkg.publishConfig as { access?: string })?.access).toBe("public");
   });
 
   it("package.json files array includes dist, skills, templates, platforms", () => {

@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { tempProject } from "../cli-helpers/temp";
 import { run } from "../cli-helpers/run";
 
-const ALL_COMMANDS = ["init", "install", "search", "validate", "doctor", "sync", "uninstall", "upgrade"];
+const ALL_COMMANDS = ["init", "search", "validate", "doctor", "sync", "uninstall", "upgrade"];
 
 describe("kflow CLI dispatch (commander)", () => {
   const REPO_ROOT = resolve(import.meta.dirname, "../..");
@@ -86,7 +86,8 @@ describe("kflow CLI dispatch (commander)", () => {
     for (const cmd of ALL_COMMANDS) {
       it(`routes "${cmd}" to its handler (not unknown-command help)`, () => {
         const cwd = tempProject();
-        const { stdout, exitCode } = run([cmd], cwd);
+        const args = cmd === "init" ? [cmd, "--platform=codex"] : [cmd];
+        const { stdout, exitCode } = run(args, cwd);
         rmSync(cwd, { recursive: true, force: true });
 
         // Must NOT contain commander's unknown-command error text
@@ -95,10 +96,6 @@ describe("kflow CLI dispatch (commander)", () => {
         // Each command's own output is verified in its own test files,
         // but we assert the dispatch happened: install/validate/search
         // with no required args print their own usage/error (not commander's).
-        if (cmd === "install") {
-          // install with no arg prints its own usage
-          expect(stdout).toContain("missing <platform>");
-        }
         if (cmd === "validate") {
           // validate with no args prints its own error
           expect(stdout).toContain("--file or --dir is required");

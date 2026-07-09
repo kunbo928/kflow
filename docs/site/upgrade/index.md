@@ -23,10 +23,11 @@ kflow upgrade 2.1.0 --apply
 the detected package manager, then invokes the upgraded CLI's `kflow sync`.
 The target defaults to `latest` and may also be a version or dist-tag.
 
-`kflow sync` mirror-syncs kflow-owned directories (`.kflow/reference/`,
-`.kflow/tools/`, and `.agents/skills/`) from the currently
-installed package. Stale files are deleted so skill deletions and renames are
-reflected in the target project. Your project's own work artifacts (features,
+`kflow sync` refreshes all installed-platform Runtime Skill Directories per
+`.kflow/meta.json` — `.claude/skills/` for Claude Code, `.agents/skills/`
+for universal platforms — plus the `.kflow/reference/` and `.kflow/tools/`
+directories. Stale kflow-owned files are removed and non-kflow content is
+preserved. Your project's own work artifacts (features,
 issues, brainstorms, architecture notes, compound notes, etc.) are never
 touched.
 

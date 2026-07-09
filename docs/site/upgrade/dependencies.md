@@ -8,26 +8,29 @@ categories are approved and which require separate decisions.
 
 | Package | Category | Supported commands |
 |---|---|---|
-| `commander` | Command / option parsing | All (`init`, `install`, `search`, `validate`, `doctor`, `sync`) |
-| `zod` | Validation contracts | `validate` |
+| `@inquirer/prompts` | Interactive CLI prompts | `init`, `uninstall` |
+| `chalk` | Terminal styling | All |
+| `commander` | Command / option parsing | All (`init`, `doctor`, `search`, `sync`, `uninstall`, `upgrade`, `validate`) |
 | `fast-glob` | Asset discovery | `search`, `validate` |
+| `ora` | Terminal spinners | `init`, `uninstall` |
 | `yaml` | YAML / frontmatter parsing | `search`, `validate` |
+| `zod` | Validation contracts | `validate` |
 
 ## Boundary
 
 - The Workflow CLI is a **deterministic project tool** — it sets up, validates,
   and discovers project assets. It does not handle workflow intent or interactive
   agent loops.
+- Interactive prompts (`init`, `uninstall`) are discovery aids that still
+  support deterministic flag paths (`--platform`, `--apply`).
 - `k-flow` is the **Workflow Router** inside the Agent Runtime (see
   [Workflows > k-flow](/workflows/k-flow) for how routing intent works).
 
-## Deferred: UX dependencies
+## UX dependencies
 
-`@inquirer/prompts`, `chalk`, and `ora` are not approved for this pass.
-Optional interactive flows (e.g., a guided `init` or `install` prompt) may be
-considered later, but non-interactive flags (`--no-save`, `--platform`, etc.)
-already cover automation. A separate ADR is required before adding any UX
-runtime dependency.
+`@inquirer/prompts`, `chalk`, and `ora` are approved per ADR 0015.
+Non-interactive flags (`--platform`, `--apply`) still cover automation;
+interactive pickers serve as a discovery aid for first-time users.
 
 ## Deferred: Telemetry
 

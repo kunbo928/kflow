@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tempProject } from "../cli-helpers/temp";
 import { run } from "../cli-helpers/run";
 
-describe("kflow install", () => {
+describe("kflow init (platform-scoped)", () => {
   let cwd: string;
 
   beforeEach(() => {
@@ -15,12 +15,12 @@ describe("kflow install", () => {
     rmSync(cwd, { recursive: true, force: true });
   });
 
-  function install(args: string[] = []): { stdout: string; exitCode: number } {
-    return run(["install", ...args], cwd);
+  function kflow(args: string[] = []): { stdout: string; exitCode: number } {
+    return run(["init", ...args], cwd);
   }
 
   it("unsupported platform exits non-zero and lists supported names", () => {
-    const { stdout, exitCode } = install(["foobar"]);
+    const { stdout, exitCode } = kflow(["--platform=foobar"]);
     expect(exitCode).not.toBe(0);
     expect(stdout).toContain("codex");
     expect(stdout).toContain("cursor");
@@ -28,19 +28,10 @@ describe("kflow install", () => {
     expect(stdout).toContain("opencode");
   });
 
-  it("no platform argument prints usage and exits non-zero", () => {
-    const { stdout, exitCode } = install([]);
-    expect(exitCode).not.toBe(0);
-    // Should at minimum mention supported platforms or install usage
-    expect(stdout).toMatch(/install|cursor|claude|codex|opencode/);
-  });
-
   // ── codex ──────────────────────────────────────────────
 
-  it("codex: writes AGENTS.md, exit 0, distinguishes setup from next steps", () => {
-    run(["init"], cwd);
-    rmSync(join(cwd, ".agents"), { recursive: true, force: true });
-    const { stdout, exitCode } = install(["codex"]);
+  it("codex: writes AGENTS.md, exit 0, lists installed platforms", () => {
+    const { stdout, exitCode } = kflow(["--platform=codex"]);
     expect(exitCode).toBe(0);
 
     // AGENTS.md written to project root
@@ -49,11 +40,11 @@ describe("kflow install", () => {
     const content = readFileSync(agentsPath, "utf-8");
     expect(content).toContain("kflow");
     expect(content).toContain("/k-flow");
-    expect(content).toContain("Codex");
+    expect(content).toContain("codex");
+    expect(content).toContain("Installed Platforms");
 
-    // stdout separates completed setup from next steps
-    expect(stdout).toContain("Completed:");
-    expect(stdout).toContain("Next steps:");
+    // stdout confirms install
+    expect(stdout).toContain("codex");
 
     const skillsDir = join(cwd, ".agents/skills");
     expect(existsSync(join(skillsDir, "k-flow/SKILL.md"))).toBe(true);
@@ -62,76 +53,70 @@ describe("kflow install", () => {
 
   // ── cursor ─────────────────────────────────────────────
 
-  it("cursor: writes AGENTS.md, exit 0, prints Cursor next steps", () => {
-    run(["init"], cwd);
-    const { stdout, exitCode } = install(["cursor"]);
+  it("cursor: writes AGENTS.md, exit 0, mentions cursor", () => {
+    const { stdout, exitCode } = kflow(["--platform=cursor"]);
     expect(exitCode).toBe(0);
 
     const content = readFileSync(join(cwd, "AGENTS.md"), "utf-8");
     expect(content).toContain("/k-flow");
-    expect(content).toContain("Cursor");
+    expect(content).toContain("cursor");
 
-    expect(stdout).toContain("Completed:");
-    expect(stdout).toContain("Next steps:");
-    expect(stdout).toContain("Cursor");
+    expect(stdout).toContain("cursor");
   });
 
   // ── claude ─────────────────────────────────────────────
 
-  it("claude: writes CLAUDE.md, exit 0, prints Claude next steps", () => {
-    run(["init"], cwd);
-    const { stdout, exitCode } = install(["claude"]);
+  it("claude: writes CLAUDE.md, exit 0", () => {
+    const { stdout, exitCode } = kflow(["--platform=claude"]);
     expect(exitCode).toBe(0);
 
     const content = readFileSync(join(cwd, "CLAUDE.md"), "utf-8");
     expect(content).toContain("/k-flow");
-    expect(content).toContain("Claude Code");
 
-    expect(stdout).toContain("Completed:");
-    expect(stdout).toContain("Next steps:");
-    expect(stdout).toContain("Claude");
+    expect(stdout).toContain("claude");
   });
 
   // ── opencode ───────────────────────────────────────────
 
-  it("opencode: writes AGENTS.md, exit 0, prints OpenCode next steps", () => {
-    run(["init"], cwd);
-    const { stdout, exitCode } = install(["opencode"]);
+  it("opencode: writes AGENTS.md, exit 0", () => {
+    const { stdout, exitCode } = kflow(["--platform=opencode"]);
     expect(exitCode).toBe(0);
 
     const content = readFileSync(join(cwd, "AGENTS.md"), "utf-8");
     expect(content).toContain("/k-flow");
-    expect(content).toContain("OpenCode");
+    expect(content).toContain("opencode");
 
-    expect(stdout).toContain("Completed:");
-    expect(stdout).toContain("Next steps:");
+    expect(stdout).toContain("opencode");
   });
 
   // ── idempotency ────────────────────────────────────────
 
-  it("idempotent: running install twice succeeds both times, file content is fresh", () => {
-    run(["init"], cwd);
-
-    const { exitCode: first } = install(["codex"]);
+  it("idempotent: running init twice skips already-installed platform", () => {
+    const { exitCode: first } = kflow(["--platform=codex"]);
     expect(first).toBe(0);
 
-    // Mutate the entry file to simulate user edit
-    writeFileSync(join(cwd, "AGENTS.md"), "edited by user");
-
-    const { exitCode: second } = install(["codex"]);
+    // Second run with same platform: exits 0, says already installed
+    const { stdout: secondOut, exitCode: second } = kflow(["--platform=codex"]);
     expect(second).toBe(0);
+    expect(secondOut).toMatch(/already installed/i);
 
-    // Should be overwritten back to kflow content
-    const content = readFileSync(join(cwd, "AGENTS.md"), "utf-8");
-    expect(content).toContain("/k-flow");
-    expect(content).not.toBe("edited by user");
+    // But adding a new platform works
+    const { exitCode: third } = kflow(["--platform=cursor"]);
+    expect(third).toBe(0);
+
+    const agents = readFileSync(join(cwd, "AGENTS.md"), "utf-8");
+    expect(agents).toContain("codex");
+    expect(agents).toContain("cursor");
   });
 
-  // ── missing .kflow/ ────────────────────────────────────
+  // ── multi-platform ────────────────────────────────────
 
-  it("missing .kflow/: warns and exits non-zero", () => {
-    const { stdout, exitCode } = install(["codex"]);
-    expect(exitCode).not.toBe(0);
-    expect(stdout).toContain("kflow init");
+  it("supports comma-separated multi-platform", () => {
+    const { exitCode } = kflow(["--platform=codex,cursor"]);
+    expect(exitCode).toBe(0);
+
+    const agents = readFileSync(join(cwd, "AGENTS.md"), "utf-8");
+    expect(agents).toContain("codex");
+    expect(agents).toContain("cursor");
   });
 });

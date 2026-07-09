@@ -1,133 +1,16 @@
-import { existsSync, rmSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, rmSync, readFileSync, readdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-
-const SUPPORTED = ["codex", "cursor", "claude", "opencode"] as const;
-type Platform = (typeof SUPPORTED)[number];
-
-function isSupported(name: string): name is Platform {
-  return (SUPPORTED as readonly string[]).includes(name);
-}
-
-export function run(argv: string[]): void {
-  const apply = argv.includes("--apply");
-  const posArgs = argv.filter((a) => a !== "--apply");
-  const cwd = process.cwd();
-  const platform = posArgs[0];
-
-  if (platform && isSupported(platform)) {
-    if (apply) {
-      applyPlatformUninstall(cwd, platform);
-    } else {
-      planPlatformUninstall(cwd, platform);
-    }
-  } else if (platform) {
-    console.log(
-      `kflow uninstall: unsupported platform '${platform}'. Supported: ${SUPPORTED.join(", ")}`
-    );
-    process.exit(1);
-  } else {
-    if (apply) {
-      applyFullUninstall(cwd);
-    } else {
-      planFullUninstall(cwd);
-    }
-  }
-}
-
-// ── full uninstall dry-run ─────────────────────────────────────────────
-
-function planFullUninstall(cwd: string): void {
-  console.log("kflow uninstall (dry-run)");
-
-  if (existsSync(join(cwd, ".kflow"))) {
-    console.log("Would remove   : .kflow");
-    console.log("  ⚠ .kflow contains user-authored project knowledge. Back up before applying.");
-  }
-
-  if (existsSync(join(cwd, ".agents", "skills"))) {
-    console.log("Would remove   : .agents/skills");
-  }
-
-  const entryFiles = ["AGENTS.md", "CLAUDE.md"];
-  for (const f of entryFiles) {
-    if (existsSync(join(cwd, f))) {
-      console.log(`Would remove   : ${f}`);
-    }
-  }
-
-  const pm = detectPackageManager(cwd);
-  console.log(`Package manager : ${pm}`);
-  console.log(`Remove command  : ${removeCommand(pm)}`);
-}
-
-// ── full uninstall apply ───────────────────────────────────────────────
-
-function applyFullUninstall(cwd: string): void {
-  const pm = detectPackageManager(cwd);
-  const cmd = removeCommand(pm);
-
-  // 1. Remove package dependency
-  console.log(`Package manager : ${pm}`);
-  console.log(`Remove command  : ${cmd}`);
-
-  const exit = runCommand(cmd, "KFLOW_UNINSTALL_REMOVE_CMD", cwd);
-  if (exit !== 0) {
-    console.log("Package removal failed. File deletion skipped.");
-    console.log("Next step: resolve the package manager error and re-run kflow uninstall --apply.");
-    process.exit(exit);
-  }
-
-  // 2–4. Delete files — wrap in try/catch for graceful failure reporting
-  try {
-    if (existsSync(join(cwd, ".kflow"))) {
-      rmSync(join(cwd, ".kflow"), { recursive: true, force: true });
-      console.log("Removed         : .kflow (project knowledge)");
-    }
-
-    if (existsSync(join(cwd, ".agents"))) {
-      rmSync(join(cwd, ".agents"), { recursive: true, force: true });
-      console.log("Removed         : .agents");
-    }
-
-    const entryFiles = ["AGENTS.md", "CLAUDE.md"];
-    for (const f of entryFiles) {
-      const fp = join(cwd, f);
-      if (existsSync(fp)) {
-        if (isKflowGenerated(fp)) {
-          rmSync(fp);
-          console.log(`Removed         : ${f}`);
-        } else {
-          console.log(`Preserved (not kflow-generated): ${f}`);
-        }
-      }
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.log("");
-    console.log("Package removal succeeded, but file deletion failed.");
-    console.log("Partial uninstall: some kflow files remain.");
-    console.log(`Error: ${message}`);
-    console.log("Next step: manually remove .kflow, .agents, and kflow entry files, or re-run kflow uninstall --apply.");
-    process.exit(1);
-  }
-
-  console.log("");
-  console.log("kflow uninstall complete.");
-}
-
-function runCommand(plannedCmd: string, envKey: string, cwd: string): number {
-  const override = process.env[envKey];
-  const cmd = override ?? plannedCmd;
-  const result = spawnSync(cmd, [], {
-    cwd,
-    shell: true,
-    stdio: "inherit",
-  });
-  return result.status ?? 1;
-}
-
-// ── platform-scope uninstall dry-run ───────────────────────────────────
+import { checkbox, confirm } from "@inquirer/prompts";
+import chalk from "chalk";
+import {
+  ALL_PLATFORMS,
+  detectInstalledPlatforms,
+  readMeta,
+  RUNTIME_SKILL_DIRS,
+  writeMeta,
+  type Platform,
+} from "./meta.js";
 
 const platformEntryFiles: Record<Platform, string> = {
   codex: "AGENTS.md",
@@ -136,75 +19,9 @@ const platformEntryFiles: Record<Platform, string> = {
   opencode: "AGENTS.md",
 };
 
-function planPlatformUninstall(cwd: string, platform: Platform): void {
-  console.log(`kflow uninstall ${platform} (dry-run)`);
-  console.log("");
-
-  const entryFile = platformEntryFiles[platform];
-  if (existsSync(join(cwd, entryFile))) {
-    console.log(`Would remove   : ${entryFile}`);
-  }
-
-  if (existsSync(join(cwd, "README.md"))) {
-    console.log(`Would remove   : README.md`);
-  }
-
-  if (platform === "codex" && existsSync(join(cwd, ".agents"))) {
-    console.log("Would remove   : .agents/skills");
-  }
-
-  console.log("");
-  console.log("Will preserve:");
-  console.log("  - .kflow (project knowledge)");
-  console.log("  - kflow CLI package dependency");
-}
-
-// ── platform-scope uninstall apply ─────────────────────────────────────
-
 const MARKER = "Generated by kflow";
 
-function applyPlatformUninstall(cwd: string, platform: Platform): void {
-  console.log(`kflow uninstall ${platform} --apply`);
-  console.log("");
-
-  const entryFile = platformEntryFiles[platform];
-  const entryPath = join(cwd, entryFile);
-
-  if (existsSync(entryPath)) {
-    if (isKflowGenerated(entryPath)) {
-      rmSync(entryPath);
-      console.log(`Removed         : ${entryFile}`);
-    } else {
-      console.log(`Preserved (not kflow-generated): ${entryFile}`);
-    }
-  } else {
-    console.log(`Already absent  : ${entryFile}`);
-  }
-
-  if (platform === "codex") {
-    const agentsPath = join(cwd, ".agents", "skills");
-    if (existsSync(agentsPath)) {
-      rmSync(agentsPath, { recursive: true, force: true });
-      console.log("Removed         : .agents/skills");
-      const agentsDir = join(cwd, ".agents");
-      if (existsSync(agentsDir)) {
-        try {
-          rmSync(agentsDir);
-          console.log("Removed         : .agents (empty)");
-        } catch {
-          // not empty — other entries remain, leave it
-        }
-      }
-    } else {
-      console.log("Already absent  : .agents/skills");
-    }
-  }
-
-  console.log("");
-  console.log("Preserved:");
-  console.log("  - .kflow (project knowledge)");
-  console.log("  - kflow CLI package dependency");
-}
+// ── Helpers ───────────────────────────────────────────────────────────
 
 function isKflowGenerated(filePath: string): boolean {
   try {
@@ -213,8 +30,6 @@ function isKflowGenerated(filePath: string): boolean {
     return false;
   }
 }
-
-// ── shared helpers ─────────────────────────────────────────────────────
 
 type PM = "pnpm" | "yarn" | "bun" | "npm";
 
@@ -234,4 +49,312 @@ function removeCommand(pm: PM): string {
     case "bun":  return "bun remove kflow";
     case "npm":  return "npm uninstall kflow";
   }
+}
+
+function runCommand(plannedCmd: string, envKey: string, cwd: string): number {
+  const override = process.env[envKey];
+  const cmd = override ?? plannedCmd;
+  const result = spawnSync(cmd, [], {
+    cwd,
+    shell: true,
+    stdio: "inherit",
+  });
+  return result.status ?? 1;
+}
+
+function packageRoot(): string {
+  // dist/commands/uninstall.js -> package root
+  return resolve(import.meta.dirname, "..", "..");
+}
+
+function kflowSkillNames(): string[] {
+  const skillsDir = join(packageRoot(), "skills");
+  if (!existsSync(skillsDir)) return [];
+  return readdirSync(skillsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+}
+
+function removeKflowSkillsFrom(cwd: string, relativeDir: string, indent = ""): void {
+  const skillsDir = join(cwd, ...relativeDir.split("/"));
+  if (!existsSync(skillsDir)) return;
+
+  let removed = 0;
+  for (const skillName of kflowSkillNames()) {
+    const skillPath = join(skillsDir, skillName);
+    if (existsSync(skillPath)) {
+      rmSync(skillPath, { recursive: true, force: true });
+      removed++;
+    }
+  }
+
+  if (removed > 0) {
+    console.log(`${indent}${chalk.green("✓")} Removed: kflow skills from ${relativeDir}`);
+  }
+
+  if (readdirSync(skillsDir).length === 0) {
+    rmSync(skillsDir, { recursive: true, force: true });
+    console.log(`${indent}${chalk.green("✓")} Removed: ${relativeDir} (empty)`);
+  } else {
+    console.log(`${indent}${chalk.yellow("⚠")} Preserved: ${relativeDir} (contains non-kflow skills)`);
+  }
+
+  // Prune empty parent dirs (e.g. .claude/ or .agents/)
+  const parentDir = join(cwd, relativeDir.split("/")[0]);
+  if (existsSync(parentDir)) {
+    if (readdirSync(parentDir).length === 0) {
+      rmSync(parentDir, { recursive: true, force: true });
+      console.log(`${indent}${chalk.green("✓")} Removed: ${relativeDir.split("/")[0]} (empty)`);
+    } else {
+      console.log(`${indent}${chalk.yellow("⚠")} Preserved: ${relativeDir.split("/")[0]} (contains non-kflow content)`);
+    }
+  }
+}
+
+function removeKflowRuntimeSkills(cwd: string, indent = ""): void {
+  removeKflowSkillsFrom(cwd, ".agents/skills", indent);
+}
+
+/** Delete a single platform's integration files. */
+function removePlatform(cwd: string, platform: Platform): void {
+  const entryFile = platformEntryFiles[platform];
+  const entryPath = join(cwd, entryFile);
+
+  if (existsSync(entryPath)) {
+    if (isKflowGenerated(entryPath)) {
+      rmSync(entryPath);
+      console.log(`  ${chalk.green("✓")} Removed: ${entryFile}`);
+    } else {
+      console.log(`  ${chalk.yellow("⚠")} Preserved (not kflow-generated): ${entryFile}`);
+    }
+  }
+
+  // Remove kflow skills from this platform's runtime directory,
+  // but only if no remaining installed platform shares that directory.
+  const runtimeDir = RUNTIME_SKILL_DIRS[platform];
+  const meta = readMeta(cwd);
+  if (meta) {
+    const remaining = meta.platforms.filter((e) => e.name !== platform);
+    const remainingDirs = new Set(
+      remaining
+        .map((e) => e.name)
+        .filter((n): n is Platform => (ALL_PLATFORMS as readonly string[]).includes(n))
+        .map((p) => RUNTIME_SKILL_DIRS[p]),
+    );
+    if (!remainingDirs.has(runtimeDir)) {
+      removeKflowSkillsFrom(cwd, runtimeDir, "  ");
+    } else {
+      console.log(`  ${chalk.yellow("⚠")} Preserved: ${runtimeDir} (shared with other installed platforms)`);
+    }
+  } else {
+    // No meta.json: remove skills from the platform's dir (no shared-state info)
+    removeKflowSkillsFrom(cwd, runtimeDir, "  ");
+  }
+}
+
+/** Full uninstall: remove everything kflow. */
+async function applyFullUninstall(cwd: string): Promise<void> {
+  const pm = detectPackageManager(cwd);
+  const cmd = removeCommand(pm);
+
+  console.log(chalk.bold("\nkflow uninstall — full removal\n"));
+  console.log(`Package manager : ${pm}`);
+  console.log(`Remove command  : ${cmd}`);
+
+  const exit = runCommand(cmd, "KFLOW_UNINSTALL_REMOVE_CMD", cwd);
+  if (exit !== 0) {
+    console.log(chalk.red("\nPackage removal failed. File deletion skipped."));
+    console.log("Next step: resolve the package manager error and re-run kflow uninstall --apply.");
+    process.exit(exit);
+  }
+
+  try {
+    if (existsSync(join(cwd, ".kflow"))) {
+      rmSync(join(cwd, ".kflow"), { recursive: true, force: true });
+      console.log(`${chalk.green("✓")} Removed: .kflow (project knowledge)`);
+    }
+
+    removeKflowRuntimeSkills(cwd);
+
+    // Also remove from .claude/skills/ if present
+    removeKflowSkillsFrom(cwd, ".claude/skills");
+
+    const entryFiles = ["AGENTS.md", "CLAUDE.md"];
+    for (const f of entryFiles) {
+      const fp = join(cwd, f);
+      if (existsSync(fp)) {
+        if (isKflowGenerated(fp)) {
+          rmSync(fp);
+          console.log(`${chalk.green("✓")} Removed: ${f}`);
+        } else {
+          console.log(`${chalk.yellow("⚠")} Preserved: ${f}`);
+        }
+      }
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.log("");
+    console.log(chalk.red("Package removal succeeded, but file deletion failed."));
+    console.log("Partial uninstall: some kflow files remain.");
+    console.log(`Error: ${message}`);
+    console.log("Next step: manually remove .kflow, .agents, and kflow entry files, or re-run kflow uninstall --apply.");
+    process.exit(1);
+  }
+
+  console.log(chalk.green("\nkflow uninstall complete."));
+}
+
+// ── Main ──────────────────────────────────────────────────────────────
+
+export async function run(argv: string[]): Promise<void> {
+  const apply = argv.includes("--apply");
+  const platformArg = argv.find((a) => a.startsWith("--platform="));
+  const platformList = platformArg?.replace("--platform=", "");
+  const cwd = process.cwd();
+
+  // ── Deterministic path (--platform flag) ─────────────────────────────
+  if (platformList) {
+    const names = platformList.split(",").map((s) => s.trim()).filter(Boolean);
+    for (const n of names) {
+      if (!(ALL_PLATFORMS as readonly string[]).includes(n)) {
+        console.log(
+          chalk.red(`kflow uninstall: unsupported platform '${n}'. Supported: ${ALL_PLATFORMS.join(", ")}`)
+        );
+        process.exit(1);
+      }
+    }
+    const platforms = [...new Set(names)] as Platform[];
+
+    for (const p of platforms) {
+      if (apply) {
+        console.log(chalk.bold(`\nkflow uninstall ${p} --apply\n`));
+        removePlatform(cwd, p);
+        // Update meta.json
+        const meta = readMeta(cwd);
+        if (meta) {
+          const remaining = meta.platforms.filter((e) => e.name !== p);
+          writeMeta(cwd, { platforms: remaining, version: meta.version });
+        }
+        console.log(chalk.green(`\n${p} uninstall complete.`));
+        console.log("Preserved: .kflow (project knowledge), kflow CLI package dependency");
+      } else {
+        // Dry-run
+        console.log(chalk.bold(`\nkflow uninstall ${p} (dry-run)\n`));
+        const entryFile = platformEntryFiles[p];
+        if (existsSync(join(cwd, entryFile))) {
+          console.log(`Would remove: ${entryFile}`);
+        }
+        if (p === "codex" && existsSync(join(cwd, ".agents", "skills"))) {
+          console.log("Would remove: kflow skills from .agents/skills");
+        }
+        console.log("\nWill preserve:");
+        console.log("  - .kflow (project knowledge)");
+        console.log("  - kflow CLI package dependency");
+        console.log(chalk.dim(`\nTo apply: kflow uninstall --platform=${p} --apply`));
+      }
+    }
+    return;
+  }
+
+  // ── Full uninstall (no platform specified) ──────────────────────────
+  const posArgs = argv.filter((a) => a !== "--apply" && !a.startsWith("--platform="));
+  if (posArgs.length > 0 && !apply) {
+    // Legacy full-uninstall dry-run
+    console.log("kflow uninstall (dry-run)");
+
+    if (existsSync(join(cwd, ".kflow"))) {
+      console.log("Would remove   : .kflow");
+      console.log("  ⚠ .kflow contains user-authored project knowledge. Back up before applying.");
+    }
+    if (existsSync(join(cwd, ".agents", "skills"))) {
+      console.log("Would remove   : kflow skills from .agents/skills");
+    }
+    const entryFiles = ["AGENTS.md", "CLAUDE.md"];
+    for (const f of entryFiles) {
+      if (existsSync(join(cwd, f))) {
+        console.log(`Would remove   : ${f}`);
+      }
+    }
+    const pm = detectPackageManager(cwd);
+    console.log(`Package manager : ${pm}`);
+    console.log(`Remove command  : ${removeCommand(pm)}`);
+    console.log("");
+    console.log("To apply: kflow uninstall --apply");
+    return;
+  }
+
+  if (posArgs.length > 0 && apply) {
+    // Legacy full-uninstall apply
+    await applyFullUninstall(cwd);
+    return;
+  }
+
+  // ── Interactive picker ──────────────────────────────────────────────
+  if (apply) {
+    // --apply without --platform → full uninstall
+    await applyFullUninstall(cwd);
+    return;
+  }
+
+  // Interactive: no flags, pick platforms
+  const fileInstalled = detectInstalledPlatforms(cwd);
+  if (fileInstalled.length === 0) {
+    console.log(chalk.yellow("No kflow platform integrations detected."));
+    console.log("To fully remove kflow: kflow uninstall --apply");
+    process.exit(0);
+  }
+
+  const selected = await checkbox({
+    message: "Select platforms to uninstall:",
+    choices: fileInstalled.map((p) => ({
+      name: p,
+      value: p,
+      checked: true,
+    })),
+    pageSize: 10,
+  }) as Platform[];
+
+  if (selected.length === 0) {
+    console.log(chalk.dim("No platforms selected. Aborted."));
+    process.exit(0);
+  }
+
+  // Last-platform warning
+  const meta = readMeta(cwd);
+  const allKnown = meta?.platforms?.map((e) => e.name) ?? fileInstalled;
+  const remainingAfter = allKnown.filter((p) => !selected.includes(p as Platform));
+  if (remainingAfter.length === 0) {
+    const proceed = await confirm({
+      message: chalk.yellow(
+        "This is the last installed platform. All kflow files (including .kflow project knowledge) will be removed. Continue?"
+      ),
+      default: false,
+    });
+    if (!proceed) {
+      console.log(chalk.dim("Aborted."));
+      process.exit(0);
+    }
+    // Full uninstall
+    await applyFullUninstall(cwd);
+    // Remove meta.json
+    try { rmSync(join(cwd, ".kflow", "meta.json")); } catch { /* ignore */ }
+    return;
+  }
+
+  // Execute removal
+  console.log(chalk.bold("\nUninstalling platforms:\n"));
+  for (const p of selected) {
+    removePlatform(cwd, p);
+  }
+
+  // Update meta.json
+  if (meta) {
+    writeMeta(cwd, {
+      platforms: meta.platforms.filter((e) => !selected.includes(e.name as Platform)),
+      version: meta.version,
+    });
+  }
+
+  console.log(chalk.green(`\nUninstalled: ${selected.join(", ")}`));
+  console.log("Preserved: .kflow (project knowledge), kflow CLI package dependency");
 }

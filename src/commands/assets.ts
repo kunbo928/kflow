@@ -3,7 +3,12 @@ import { join } from "node:path";
 
 /** Copy skills into the universal runtime discovery path (.agents/skills/). */
 export function copyRuntimeSkills(pkgRoot: string, cwd: string): void {
-  cpSync(join(pkgRoot, "skills"), join(cwd, ".agents", "skills"), {
+  copyRuntimeSkillsTo(pkgRoot, cwd, ".agents/skills");
+}
+
+/** Copy skills into a specific runtime discovery directory relative to cwd. */
+export function copyRuntimeSkillsTo(pkgRoot: string, cwd: string, relativeDir: string): void {
+  cpSync(join(pkgRoot, "skills"), join(cwd, relativeDir), {
     recursive: true,
   });
 }

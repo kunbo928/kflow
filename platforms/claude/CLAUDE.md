@@ -14,4 +14,4 @@ Use `/k-flow` as the Skill Workflow entrypoint. The agent will route you to the 
 /k-flow    # Start here
 ```
 
-See `.agents/skills/` for full docs on each skill.
+See `.claude/skills/` for full docs on each skill.

@@ -8,11 +8,11 @@ import { resolve } from "node:path";
 import { run as runInit } from "./commands/init.js";
 import { run as runDoctor } from "./commands/doctor.js";
 import { run as runSync } from "./commands/sync.js";
-import { run as runInstall } from "./commands/install.js";
 import { run as runSearch } from "./commands/search.js";
 import { run as runValidate } from "./commands/validate.js";
 import { run as runUninstall } from "./commands/uninstall.js";
 import { run as runUpgrade } from "./commands/upgrade.js";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 function pkgVersion(): string {
   try {
@@ -24,12 +24,15 @@ function pkgVersion(): string {
   }
 }
 
-function define(name: string, desc: string, runner: (argv: string[]) => void): Command {
+function define(name: string, desc: string, runner: (argv: string[]) => void | Promise<void>): Command {
   return new Command(name)
     .description(desc)
     .allowUnknownOption(true)
     .allowExcessArguments(true)
-    .action((_, cmd) => runner(cmd.args ?? []));
+    .action(async (_, cmd) => {
+      const r = runner(cmd.args ?? []);
+      if (r instanceof Promise) await r;
+    });
 }
 
 const program = new Command();
@@ -39,9 +42,8 @@ program
   .description("AI coding workflow skill pack — orchestrate the software lifecycle with humans in the loop.")
   .version(pkgVersion());
 
-program.addCommand(define("init",      "Onboard a project with kflow assets",             runInit));
-program.addCommand(define("install",   "Install kflow integration for a platform",         runInstall));
-program.addCommand(define("search",    "Search YAML-frontmatter .md files",                runSearch));
+program.addCommand(define("init",      "Onboard a project with kflow assets (interactive by default)", runInit));
+program.addCommand(define("search",    "Search YAML-frontmatter .md files",                     runSearch));
 program.addCommand(define("validate",  "Validate YAML frontmatter in .md or .yaml files",  runValidate));
 program.addCommand(define("doctor",    "Check kflow installation health",                  runDoctor));
 program.addCommand(define("sync",      "Refresh kflow-owned assets",                       runSync));

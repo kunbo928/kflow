@@ -34,14 +34,14 @@ describe("kflow init — .kflow/ structure", () => {
   }
 
   it("creates .kflow/ directory", () => {
-    init();
+    init("--platform=codex");
     const kflowDir = join(tempDir, ".kflow");
     expect(existsSync(kflowDir)).toBe(true);
     expect(statSync(kflowDir).isDirectory()).toBe(true);
   });
 
   it("creates aggregation subdirectories without .gitkeep", () => {
-    init();
+    init("--platform=codex");
     const dirs = [
       "requirements",
       "roadmap",
@@ -62,19 +62,19 @@ describe("kflow init — .kflow/ structure", () => {
   });
 
   it("exits with code 0 on success", () => {
-    const { exitCode } = init();
+    const { exitCode } = init("--platform=codex");
     expect(exitCode).toBe(0);
   });
 
   it("creates .kflow/attention.md with minimal template", () => {
-    init();
+    init("--platform=codex");
     const attention = readFileSync(join(tempDir, ".kflow/attention.md"), "utf-8");
     expect(attention).toContain("# Attention");
     expect(attention).toContain("kflow");
   });
 
   it("creates .kflow/architecture/ARCHITECTURE.md with placeholder template", () => {
-    init();
+    init("--platform=codex");
     const archDir = join(tempDir, ".kflow/architecture");
     expect(statSync(archDir).isDirectory()).toBe(true);
 
@@ -84,7 +84,7 @@ describe("kflow init — .kflow/ structure", () => {
   });
 
   it("copies templates/ into .kflow/reference/", () => {
-    init();
+    init("--platform=codex");
     const refDir = join(tempDir, ".kflow/reference");
     expect(statSync(refDir).isDirectory()).toBe(true);
 
@@ -97,7 +97,7 @@ describe("kflow init — .kflow/ structure", () => {
   });
 
   it("copies tools/ into .kflow/tools/", () => {
-    init();
+    init("--platform=codex");
     const toolsDir = join(tempDir, ".kflow/tools");
     expect(statSync(toolsDir).isDirectory()).toBe(true);
 
@@ -107,24 +107,49 @@ describe("kflow init — .kflow/ structure", () => {
   });
 
   it("copies skills/ into .agents/skills/", () => {
-    init();
+    init("--platform=codex");
     const skillsDir = join(tempDir, ".agents/skills");
     expect(statSync(skillsDir).isDirectory()).toBe(true);
     expect(existsSync(join(skillsDir, "k-flow/SKILL.md"))).toBe(true);
     expect(existsSync(join(skillsDir, "k-onboard/SKILL.md"))).toBe(true);
   });
 
-  it("generates AGENTS.md with Codex default platform marker", () => {
-    init();
+  it("generates AGENTS.md listing installed platforms", () => {
+    init("--platform=codex");
     const agents = readFileSync(join(tempDir, "AGENTS.md"), "utf-8");
     expect(agents).toContain("kflow");
     expect(agents).toContain("k-flow");
-    expect(agents).toContain("Codex");
+    expect(agents).toContain("Installed Platforms");
+    expect(agents).toContain("codex");
   });
 
   it("stdout tells user k-flow is the Skill Workflow entrypoint", () => {
-    const { stdout } = init();
+    const { stdout } = init("--platform=codex");
     expect(stdout).toContain("k-flow");
+  });
+
+  it("deterministic init prints compact kflow brand mark", () => {
+    const { stdout } = init("--platform=codex");
+    // Compact mark identifies kflow specifically with a distinctive literal
+    expect(stdout).toContain("kflow · AI coding workflow skill pack");
+    expect(stdout).toContain("kflow initialized with: codex");
+  });
+
+  it("brand mark is not written into generated project files", () => {
+    init("--platform=codex");
+    const markLiteral = "kflow · AI coding workflow skill pack";
+    // Check key generated files
+    const files = [
+      join(tempDir, "AGENTS.md"),
+      join(tempDir, ".kflow/attention.md"),
+      join(tempDir, ".kflow/architecture/ARCHITECTURE.md"),
+      join(tempDir, ".agents/skills/k-flow/SKILL.md"),
+    ];
+    for (const f of files) {
+      if (existsSync(f)) {
+        expect(readFileSync(f, "utf-8")).not.toContain(markLiteral);
+      }
+    }
   });
 
   it("saves kflow as devDependency by default", () => {
@@ -133,10 +158,91 @@ describe("kflow init — .kflow/ structure", () => {
       join(tempDir, "package.json"),
       JSON.stringify({ name: "test-project", version: "1.0.0" })
     );
-    init();
+    init("--platform=codex");
     const pkg = JSON.parse(readFileSync(join(tempDir, "package.json"), "utf-8"));
     expect(pkg.devDependencies).toBeDefined();
     expect(pkg.devDependencies["kflow"]).toBeTruthy();
+  });
+
+  it("init --platform=claude creates .claude/skills/ with packaged skills", () => {
+    init("--platform=claude");
+    const claudeSkillsDir = join(tempDir, ".claude/skills");
+    expect(existsSync(claudeSkillsDir)).toBe(true);
+    expect(statSync(claudeSkillsDir).isDirectory()).toBe(true);
+    expect(existsSync(join(claudeSkillsDir, "k-flow/SKILL.md"))).toBe(true);
+    expect(existsSync(join(claudeSkillsDir, "k-onboard/SKILL.md"))).toBe(true);
+  });
+
+  it("init --platform=codex does not create .claude/skills/", () => {
+    init("--platform=codex");
+    expect(existsSync(join(tempDir, ".claude/skills"))).toBe(false);
+  });
+
+  it("init --platform=cursor creates .agents/skills/ with skills", () => {
+    init("--platform=cursor");
+    const skillsDir = join(tempDir, ".agents/skills");
+    expect(statSync(skillsDir).isDirectory()).toBe(true);
+    expect(existsSync(join(skillsDir, "k-flow/SKILL.md"))).toBe(true);
+    expect(existsSync(join(skillsDir, "k-onboard/SKILL.md"))).toBe(true);
+    expect(existsSync(join(tempDir, ".claude/skills"))).toBe(false);
+  });
+
+  it("init --platform=opencode creates .agents/skills/ with skills", () => {
+    init("--platform=opencode");
+    const skillsDir = join(tempDir, ".agents/skills");
+    expect(statSync(skillsDir).isDirectory()).toBe(true);
+    expect(existsSync(join(skillsDir, "k-flow/SKILL.md"))).toBe(true);
+    expect(existsSync(join(skillsDir, "k-onboard/SKILL.md"))).toBe(true);
+    expect(existsSync(join(tempDir, ".claude/skills"))).toBe(false);
+  });
+
+  it("init --platform=claude,codex installs to both .claude/skills/ and .agents/skills/", () => {
+    const { stdout } = init("--platform=claude,codex");
+    // Both runtime dirs exist with skills
+    const agentsDir = join(tempDir, ".agents/skills");
+    expect(statSync(agentsDir).isDirectory()).toBe(true);
+    expect(existsSync(join(agentsDir, "k-flow/SKILL.md"))).toBe(true);
+
+    const claudeDir = join(tempDir, ".claude/skills");
+    expect(statSync(claudeDir).isDirectory()).toBe(true);
+    expect(existsSync(join(claudeDir, "k-flow/SKILL.md"))).toBe(true);
+
+    // stdout mentions both platforms
+    expect(stdout).toContain("claude");
+    expect(stdout).toContain("codex");
+
+    // meta.json lists both
+    const meta = JSON.parse(readFileSync(join(tempDir, ".kflow/meta.json"), "utf-8"));
+    const names = meta.platforms.map((e: any) => e.name);
+    expect(names).toContain("claude");
+    expect(names).toContain("codex");
+  });
+
+  it("init --platform=codex,cursor,opencode shares one .agents/skills/ without duplicating", () => {
+    init("--platform=codex,cursor,opencode");
+    // .agents/skills/ exists exactly once
+    const agentsDir = join(tempDir, ".agents/skills");
+    expect(statSync(agentsDir).isDirectory()).toBe(true);
+    expect(existsSync(join(agentsDir, "k-flow/SKILL.md"))).toBe(true);
+    // .claude/skills/ should not exist
+    expect(existsSync(join(tempDir, ".claude/skills"))).toBe(false);
+  });
+
+  it("meta.json records selected platforms with version", () => {
+    const pkg = JSON.parse(readFileSync(resolve(CLI, "../../package.json"), "utf-8"));
+    init("--platform=claude,codex");
+    const meta = JSON.parse(readFileSync(join(tempDir, ".kflow/meta.json"), "utf-8"));
+    expect(meta.version).toBe(pkg.version);
+    const names = meta.platforms.map((e: any) => e.name);
+    expect(names).toContain("claude");
+    expect(names).toContain("codex");
+  });
+
+  it("init --platform=claude writes CLAUDE.md pointing at .claude/skills/", () => {
+    init("--platform=claude");
+    const claudeMd = readFileSync(join(tempDir, "CLAUDE.md"), "utf-8");
+    expect(claudeMd).toContain(".claude/skills/");
+    expect(claudeMd).not.toContain(".agents/skills/");
   });
 
   it("--no-save leaves package.json unchanged", () => {
@@ -144,7 +250,7 @@ describe("kflow init — .kflow/ structure", () => {
       join(tempDir, "package.json"),
       JSON.stringify({ name: "test-project" })
     );
-    init("--no-save");
+    init("--no-save", "--platform=codex");
     const pkg = JSON.parse(readFileSync(join(tempDir, "package.json"), "utf-8"));
     expect(pkg.devDependencies).toBeUndefined();
     expect(pkg.dependencies).toBeUndefined();

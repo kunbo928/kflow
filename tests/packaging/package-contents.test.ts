@@ -95,11 +95,8 @@ describe("npm package contents", () => {
     >;
     const deps = Object.keys((pkg.dependencies ?? {}) as Record<string, string>);
 
-    const APPROVED = new Set(["commander", "fast-glob", "yaml", "zod"]);
+    const APPROVED = new Set(["@inquirer/prompts", "chalk", "commander", "fast-glob", "ora", "yaml", "zod"]);
     const FORBIDDEN = [
-      "@inquirer/prompts",
-      "chalk",
-      "ora",
       "posthog-node",
     ];
     const FORBIDDEN_PREFIX = "@changesets/";

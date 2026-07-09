@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { rmSync, writeFileSync, existsSync, statSync, readdirSync, readFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync, existsSync, statSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tempProject } from "./cli-helpers/temp";
 import { run } from "./cli-helpers/run";
@@ -16,7 +16,7 @@ describe("kflow sync", () => {
   });
 
   function init(args: string[] = []) {
-    return run(["init", ...args], cwd);
+    return run(["init", "--platform=codex", ...args], cwd);
   }
 
   function sync(args: string[] = []): { stdout: string; exitCode: number } {
@@ -35,6 +35,52 @@ describe("kflow sync", () => {
     // Spot-check a known skill
     expect(existsSync(join(skillsDir, "k-flow/SKILL.md"))).toBe(true);
     expect(existsSync(join(skillsDir, "k-onboard/SKILL.md"))).toBe(true);
+  });
+
+  it("refreshes .claude/skills/ when Claude installed", () => {
+    run(["init", "--platform=claude"], cwd);
+    // Remove the runtime dir so sync must recreate it
+    rmSync(join(cwd, ".claude"), { recursive: true, force: true });
+
+    const { exitCode } = sync();
+    expect(exitCode).toBe(0);
+
+    const claudeSkillsDir = join(cwd, ".claude/skills");
+    expect(existsSync(claudeSkillsDir)).toBe(true);
+    expect(statSync(claudeSkillsDir).isDirectory()).toBe(true);
+    expect(existsSync(join(claudeSkillsDir, "k-flow/SKILL.md"))).toBe(true);
+    expect(existsSync(join(claudeSkillsDir, "k-onboard/SKILL.md"))).toBe(true);
+  });
+
+  it("codex-only sync does not create .claude/skills/", () => {
+    init();
+    rmSync(join(cwd, ".agents"), { recursive: true, force: true });
+
+    const { exitCode } = sync();
+    expect(exitCode).toBe(0);
+    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
+    expect(existsSync(join(cwd, ".claude/skills"))).toBe(false);
+  });
+
+  it("codex,cursor,opencode sync refreshes .agents/skills/ once, not .claude/", () => {
+    run(["init", "--platform=codex,cursor,opencode"], cwd);
+    rmSync(join(cwd, ".agents"), { recursive: true, force: true });
+
+    const { exitCode } = sync();
+    expect(exitCode).toBe(0);
+    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
+    expect(existsSync(join(cwd, ".claude/skills"))).toBe(false);
+  });
+
+  it("claude,codex sync refreshes both .claude/skills/ and .agents/skills/", () => {
+    run(["init", "--platform=claude,codex"], cwd);
+    rmSync(join(cwd, ".agents"), { recursive: true, force: true });
+    rmSync(join(cwd, ".claude"), { recursive: true, force: true });
+
+    const { exitCode } = sync();
+    expect(exitCode).toBe(0);
+    expect(existsSync(join(cwd, ".claude/skills/k-flow/SKILL.md"))).toBe(true);
+    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
   });
 
   it("repairs Codex .agents/skills/ when missing", () => {
@@ -99,6 +145,91 @@ describe("kflow sync", () => {
     expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
   });
 
+  it("deletes stale files from .claude/skills/", () => {
+    run(["init", "--platform=claude"], cwd);
+    sync();
+
+    // Add a file that does not exist in the package source
+    const staleFile = join(cwd, ".claude/skills/k-flow/stale.md");
+    writeFileSync(staleFile, "stale content");
+    expect(existsSync(staleFile)).toBe(true);
+
+    sync();
+
+    // Stale file should be deleted
+    expect(existsSync(staleFile)).toBe(false);
+    // Real skill file should still exist
+    expect(existsSync(join(cwd, ".claude/skills/k-flow/SKILL.md"))).toBe(true);
+  });
+
+  it("preserves non-kflow skill under .claude/skills/", () => {
+    run(["init", "--platform=claude"], cwd);
+    sync();
+
+    // Create a non-kflow skill directory
+    mkdirSync(join(cwd, ".claude/skills/my-custom"), { recursive: true });
+    const customSkill = join(cwd, ".claude/skills/my-custom/SKILL.md");
+    writeFileSync(customSkill, "custom skill content");
+    expect(existsSync(customSkill)).toBe(true);
+
+    sync();
+
+    // Non-kflow skill preserved
+    expect(existsSync(customSkill)).toBe(true);
+    expect(readFileSync(customSkill, "utf-8")).toBe("custom skill content");
+    // kflow skills still refreshed
+    expect(existsSync(join(cwd, ".claude/skills/k-flow/SKILL.md"))).toBe(true);
+  });
+
+  it("preserves non-kflow skill under .agents/skills/", () => {
+    init();
+    sync();
+
+    // Create a non-kflow skill directory
+    mkdirSync(join(cwd, ".agents/skills/my-custom"), { recursive: true });
+    const customSkill = join(cwd, ".agents/skills/my-custom/SKILL.md");
+    writeFileSync(customSkill, "custom skill content");
+    expect(existsSync(customSkill)).toBe(true);
+
+    sync();
+
+    // Non-kflow skill preserved
+    expect(existsSync(customSkill)).toBe(true);
+    expect(readFileSync(customSkill, "utf-8")).toBe("custom skill content");
+    // kflow skills still refreshed
+    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
+  });
+
+  it("restores corrupted kflow skill file in .claude/skills/", () => {
+    run(["init", "--platform=claude"], cwd);
+    sync();
+
+    // Corrupt a kflow skill file
+    const skillFile = join(cwd, ".claude/skills/k-flow/SKILL.md");
+    writeFileSync(skillFile, "corrupted content");
+    expect(readFileSync(skillFile, "utf-8")).toBe("corrupted content");
+
+    sync();
+
+    // Should be restored (not corrupted)
+    expect(readFileSync(skillFile, "utf-8")).not.toBe("corrupted content");
+  });
+
+  it("restores corrupted kflow skill file in .agents/skills/", () => {
+    init();
+    sync();
+
+    // Corrupt a kflow skill file
+    const skillFile = join(cwd, ".agents/skills/k-flow/SKILL.md");
+    writeFileSync(skillFile, "corrupted content");
+    expect(readFileSync(skillFile, "utf-8")).toBe("corrupted content");
+
+    sync();
+
+    // Should be restored (not corrupted)
+    expect(readFileSync(skillFile, "utf-8")).not.toBe("corrupted content");
+  });
+
   it("deletes stale files from .kflow/reference/ and .kflow/tools/", () => {
     init();
     sync();
@@ -130,6 +261,19 @@ describe("kflow sync", () => {
     expect(exit2).toBe(0);
 
     // Known real file still intact after second sync
+    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
+  });
+
+  it("is idempotent across repeated runs for claude+codex", () => {
+    run(["init", "--platform=claude,codex"], cwd);
+    const { exitCode: exit1 } = sync();
+    expect(exit1).toBe(0);
+
+    const { exitCode: exit2 } = sync();
+    expect(exit2).toBe(0);
+
+    // Both dirs still have skills
+    expect(existsSync(join(cwd, ".claude/skills/k-flow/SKILL.md"))).toBe(true);
     expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
   });
 });

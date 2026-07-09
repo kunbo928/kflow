@@ -35,7 +35,9 @@ With `--apply`, `kflow upgrade` performs two steps:
 2. Run the upgraded CLI's `kflow sync`
 
 The sync step is invoked through the detected package manager so the upgraded
-CLI version performs the asset reconciliation.
+CLI version performs the asset reconciliation. The spawned `kflow sync`
+refreshes all installed-platform Runtime Skill Directories per
+`.kflow/meta.json` (see [kflow sync](/cli/sync)).
 
 | Lockfile | Package manager | Upgrade command | Sync command |
 |----------|-----------------|-----------------|--------------|

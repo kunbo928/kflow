@@ -8,10 +8,14 @@ Onboard your project with kflow:
 npx kflow@latest init
 ```
 
-kflow creates a `.kflow/` directory with reference docs and tools. It
-also writes an `AGENTS.md` file so your Agent Runtime knows how to route
-workflows. Run `kflow sync` to populate `.agents/skills/` from the installed
-package.
+kflow shows a **KFlow Brand Mark** in the terminal, then creates a `.kflow/`
+directory with reference docs and tools. It installs packaged skills into
+each selected platform's Runtime Skill Directory (`.agents/skills/` for
+Codex/Cursor/OpenCode; `.claude/skills/` for Claude Code) and writes
+platform entry files (`AGENTS.md` / `CLAUDE.md`).
+
+Run `kflow sync` to refresh skills in all installed-platform Runtime Skill
+Directories from the current package.
 
 `/k-flow` is the **Skill Workflow entrypoint** inside your Agent Runtime — start
 every interaction there. The agent will route you to the right sub-skill based

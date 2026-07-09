@@ -13,13 +13,13 @@ export function run(_argv: string[]): void {
   console.log(`${hasStructure ? "OK" : "MISSING"} — .kflow/ structure${hasStructure ? "" : " (run: kflow init)"}`);
   if (!hasStructure) ok = false;
 
-  // Check 2: default platform
+  // Check 2: installed platforms
   let hasPlatform = false;
   try {
     const agents = readFileSync(join(cwd, "AGENTS.md"), "utf-8");
-    hasPlatform = agents.includes("## Default Platform") && agents.includes("Codex");
+    hasPlatform = agents.includes("## Installed Platforms");
   } catch {}
-  console.log(`${hasPlatform ? "OK" : "MISSING"} — Default Platform (Codex)${hasPlatform ? "" : " (run: kflow init)"}`);
+  console.log(`${hasPlatform ? "OK" : "MISSING"} — Installed Platforms${hasPlatform ? "" : " (run: kflow init)"}`);
   if (!hasPlatform) ok = false;
 
   // Check 3: CLI dependency

@@ -29,19 +29,18 @@ describe("kflow doctor", () => {
       join(cwd, "package.json"),
       JSON.stringify({ name: "test", version: "1.0.0" })
     );
-    init();
+    init(["--platform=codex"]);
     const { stdout, exitCode } = doctor();
 
     expect(exitCode).toBe(0);
     expect(stdout).toContain("OK");
     expect(stdout).toContain(".kflow/");
-    expect(stdout).toContain("Codex");
     expect(stdout).toContain("devDependencies");
   });
 
   it("missing dependency: exit non-zero, warns about non-reproducible tools", () => {
     // init with --no-save: no package.json dependency
-    init(["--no-save"]);
+    init(["--no-save", "--platform=codex"]);
     const { stdout, exitCode } = doctor();
 
     expect(exitCode).not.toBe(0);
@@ -50,7 +49,7 @@ describe("kflow doctor", () => {
   });
 
   it("broken structure: exit non-zero, reports missing .kflow/ path", () => {
-    init();
+    init(["--platform=codex"]);
     // Nuke .kflow/reference/ to simulate stale/broken state
     const refDir = join(cwd, ".kflow/reference");
     rmSync(refDir, { recursive: true, force: true });

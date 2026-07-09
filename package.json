@@ -1,9 +1,17 @@
 {
-  "name": "kflow",
+  "name": "@kunbo0928/kflow",
   "version": "2.0.0",
   "description": "Cross-platform AI coding workflow skill pack — orchestrate the software lifecycle with humans in the loop.",
   "license": "MIT",
   "type": "module",
+  "author": "kunbo0928",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kunbo0928/kflow.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "kflow": "dist/cli.js"
   },

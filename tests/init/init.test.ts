@@ -28,7 +28,7 @@ describe("kflow init — .kflow/ structure", () => {
       });
     } catch (e: any) {
       exitCode = e.status ?? 1;
-      stdout = e.stdout?.toString() ?? "";
+      stdout = (e.stdout?.toString() ?? "") + (e.stderr?.toString() ?? "");
     }
     return { stdout, exitCode };
   }
@@ -236,6 +236,19 @@ describe("kflow init — .kflow/ structure", () => {
     const names = meta.platforms.map((e: any) => e.name);
     expect(names).toContain("claude");
     expect(names).toContain("codex");
+  });
+
+  it("blocks before overwriting malformed authoritative Installation State", () => {
+    init("--platform=codex");
+    const metaPath = join(tempDir, ".kflow/meta.json");
+    writeFileSync(metaPath, "{not-json");
+
+    const { stdout, exitCode } = init("--platform=claude");
+
+    expect(exitCode).not.toBe(0);
+    expect(stdout).toContain("Installation State is malformed");
+    expect(readFileSync(metaPath, "utf-8")).toBe("{not-json");
+    expect(existsSync(join(tempDir, ".claude/skills"))).toBe(false);
   });
 
   it("init --platform=claude writes CLAUDE.md pointing at .claude/skills/", () => {

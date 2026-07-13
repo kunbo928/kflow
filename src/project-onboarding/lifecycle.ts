@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const PLATFORM_REGISTRY = {
@@ -26,17 +26,31 @@ export const PLATFORM_REGISTRY = {
 
 export type Platform = keyof typeof PLATFORM_REGISTRY;
 
+// Frozen migration baseline: every Packaged Skill Asset shipped before
+// Installation State began recording ownedSkills. Do not derive this from the
+// current package; removed names must remain here as ownership tombstones.
+const PRE_OWNERSHIP_SKILLS = [
+  "browser-bridge", "k-arch", "k-audit", "k-brainstorm", "k-decide", "k-explore",
+  "k-feat", "k-feat-accept", "k-feat-design", "k-feat-ff", "k-feat-impl", "k-flow",
+  "k-guide", "k-issue", "k-issue-analyze", "k-issue-fix", "k-issue-report", "k-learn",
+  "k-libdoc", "k-note", "k-onboard", "k-refactor", "k-refactor-ff", "k-req", "k-roadmap",
+  "k-trick",
+] as const;
+
 export interface ProjectFilesystem {
   exists(path: string): boolean;
   readText(path: string): string;
   ensureDirectory(path: string): void;
   writeText(path: string, text: string): void;
   copyDirectory(source: string, destination: string): void;
+  listDirectories(path: string): string[];
+  removeDirectory(path: string): void;
 }
 
 export interface ProjectOnboardingLifecycle {
   inspect(cwd: string): ProjectOnboardingInspection;
   initialize(input: InitializeProjectOnboardingInput): ProjectOnboardingInitialization;
+  synchronize(input: SynchronizeProjectOnboardingInput): ProjectOnboardingSynchronization;
 }
 
 export interface InitializeProjectOnboardingInput {
@@ -80,6 +94,37 @@ export type ProjectOnboardingInitialization =
 export type ProjectOnboardingInitializationAction =
   | { kind: "runtime-skills-installed"; directory: string }
   | { kind: "platform-integration-installed"; platform: Platform };
+
+export interface SynchronizeProjectOnboardingInput {
+  cwd: string;
+  pkgRoot: string;
+}
+
+export type ProjectOnboardingSynchronization =
+  | {
+      status: "completed";
+      runtimeSkillDirectories: string[];
+      actions: ProjectOnboardingSynchronizationAction[];
+      warnings: Array<"legacy-inferred-state" | "legacy-default-runtime">;
+    }
+  | {
+      status: "blocked";
+      reason: "unsafe-installation-state";
+      installationState: "malformed" | "invalid";
+    }
+  | {
+      status: "failed";
+      reason: "filesystem-error";
+      message: string;
+      partialChanges: boolean;
+      completedActions: ProjectOnboardingSynchronizationAction[];
+      warnings: Array<"legacy-inferred-state" | "legacy-default-runtime">;
+    };
+
+export type ProjectOnboardingSynchronizationAction =
+  | { kind: "skill-mirrored"; directory: string; skill: string }
+  | { kind: "skill-removed"; directory: string; skill: string }
+  | { kind: "owned-directory-mirrored"; directory: ".kflow/reference" | ".kflow/tools" };
 
 const AGGREGATION_DIRECTORIES = [
   "requirements", "roadmap", "features", "issues", "refactors", "brainstorms", "compound",
@@ -132,12 +177,17 @@ const nodeFilesystem: ProjectFilesystem = {
   ensureDirectory: (path) => mkdirSync(path, { recursive: true }),
   writeText: (path, text) => writeFileSync(path, text),
   copyDirectory: (source, destination) => cpSync(source, destination, { recursive: true }),
+  listDirectories: (path) => readdirSync(path, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name),
+  removeDirectory: (path) => rmSync(path, { recursive: true, force: true }),
 };
 
 export interface AuthoritativeInstallationState {
   kind: "authoritative";
   platforms: Platform[];
   version: string;
+  ownedSkills: string[];
 }
 
 export interface MalformedInstallationState {
@@ -184,6 +234,7 @@ export function createProjectOnboardingLifecycle(
   return {
     inspect: (cwd) => inspect(cwd, filesystem),
     initialize: (input) => initialize(input, filesystem),
+    synchronize: (input) => synchronize(input, filesystem),
   };
 }
 
@@ -197,6 +248,88 @@ export function initializeProjectOnboarding(
   input: InitializeProjectOnboardingInput,
 ): ProjectOnboardingInitialization {
   return defaultLifecycle.initialize(input);
+}
+
+export function synchronizeProjectOnboarding(
+  input: SynchronizeProjectOnboardingInput,
+): ProjectOnboardingSynchronization {
+  return defaultLifecycle.synchronize(input);
+}
+
+function synchronize(
+  input: SynchronizeProjectOnboardingInput,
+  filesystem: ProjectFilesystem,
+): ProjectOnboardingSynchronization {
+  const { cwd, pkgRoot } = input;
+  const state = inspect(cwd, filesystem).installationState;
+  if (state.kind === "malformed" || state.kind === "invalid") {
+    return {
+      status: "blocked",
+      reason: "unsafe-installation-state",
+      installationState: state.kind,
+    };
+  }
+
+  const warnings: Array<"legacy-inferred-state" | "legacy-default-runtime"> = [];
+  let runtimeSkillDirectories: string[];
+  if (state.kind === "absent") {
+    runtimeSkillDirectories = [".agents/skills"];
+    warnings.push("legacy-default-runtime");
+  } else {
+    runtimeSkillDirectories = [
+      ...new Set(state.platforms.map((platform) => PLATFORM_REGISTRY[platform].runtimeSkillDirectory)),
+    ];
+    if (state.kind === "inferred") warnings.push("legacy-inferred-state");
+  }
+
+  const actions: ProjectOnboardingSynchronizationAction[] = [];
+  let mutationStarted = false;
+  try {
+    const skills = filesystem.listDirectories(join(pkgRoot, "skills"));
+    for (const directory of runtimeSkillDirectories) {
+      for (const skill of state.kind === "authoritative" ? state.ownedSkills : []) {
+        if (skills.includes(skill)) continue;
+        mutationStarted = true;
+        filesystem.removeDirectory(join(cwd, directory, skill));
+        actions.push({ kind: "skill-removed", directory, skill });
+      }
+      for (const skill of skills) {
+        mutationStarted = true;
+        filesystem.removeDirectory(join(cwd, directory, skill));
+        filesystem.copyDirectory(join(pkgRoot, "skills", skill), join(cwd, directory, skill));
+        actions.push({ kind: "skill-mirrored", directory, skill });
+      }
+    }
+
+    for (const [source, directory] of [
+      ["templates", ".kflow/reference"],
+      ["tools", ".kflow/tools"],
+    ] as const) {
+      mutationStarted = true;
+      filesystem.removeDirectory(join(cwd, directory));
+      filesystem.copyDirectory(join(pkgRoot, source), join(cwd, directory));
+      actions.push({ kind: "owned-directory-mirrored", directory });
+    }
+
+    if (state.kind === "authoritative") {
+      filesystem.writeText(join(cwd, ".kflow", "meta.json"), JSON.stringify({
+        platforms: readPersistedEntries(cwd, filesystem),
+        version: state.version,
+        ownedSkills: skills,
+      }, null, 2) + "\n");
+    }
+
+    return { status: "completed", runtimeSkillDirectories, actions, warnings };
+  } catch (error) {
+    return {
+      status: "failed",
+      reason: "filesystem-error",
+      message: error instanceof Error ? error.message : String(error),
+      partialChanges: mutationStarted,
+      completedActions: actions,
+      warnings,
+    };
+  }
 }
 
 function initialize(
@@ -260,7 +393,11 @@ function initialize(
     ...previous,
     ...platforms.filter((name) => !existingNames.has(name)).map((name) => ({ name, installedAt })),
   ];
-  filesystem.writeText(join(kflowDir, "meta.json"), JSON.stringify({ platforms: entries, version }, null, 2) + "\n");
+  const ownedSkills = filesystem.listDirectories(join(pkgRoot, "skills"));
+  filesystem.writeText(
+    join(kflowDir, "meta.json"),
+    JSON.stringify({ platforms: entries, version, ownedSkills }, null, 2) + "\n",
+  );
   filesystem.writeText(join(cwd, "AGENTS.md"), generateAgentsEntry(entries.map((entry) => entry.name)));
 
   return {
@@ -360,6 +497,7 @@ function inspect(cwd: string, filesystem: ProjectFilesystem): ProjectOnboardingI
     kind: "authoritative",
     platforms: data.platforms.map((entry) => entry.name),
     version: data.version,
+    ownedSkills: data.ownedSkills ?? [...PRE_OWNERSHIP_SKILLS],
   }, filesystem);
 }
 
@@ -445,11 +583,22 @@ function compareInstallationEvidence(
 
 function isPersistedInstallationState(
   value: unknown,
-): value is { platforms: Array<{ name: Platform; installedAt: string }>; version: string } {
+): value is {
+  platforms: Array<{ name: Platform; installedAt: string }>;
+  version: string;
+  ownedSkills?: string[];
+} {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Record<string, unknown>;
   if (typeof candidate.version !== "string" || candidate.version.length === 0 || !Array.isArray(candidate.platforms)) {
     return false;
+  }
+  if (candidate.ownedSkills !== undefined) {
+    if (!Array.isArray(candidate.ownedSkills)
+      || candidate.ownedSkills.some((skill) => !isSafeSkillDirectoryName(skill))
+      || new Set(candidate.ownedSkills).size !== candidate.ownedSkills.length) {
+      return false;
+    }
   }
   const names = new Set<string>();
   return candidate.platforms.every((entry) => {
@@ -463,4 +612,13 @@ function isPersistedInstallationState(
     names.add(platform.name as string);
     return true;
   });
+}
+
+function isSafeSkillDirectoryName(value: unknown): value is string {
+  return typeof value === "string"
+    && value.length > 0
+    && value !== "."
+    && value !== ".."
+    && !value.includes("/")
+    && !value.includes("\\");
 }

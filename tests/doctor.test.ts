@@ -59,4 +59,31 @@ describe("kflow doctor", () => {
     expect(stdout).toContain("MISSING");
     expect(stdout).toContain(".kflow/");
   });
+
+  it("uses authoritative Installation State for a Claude-only project", () => {
+    writeFileSync(
+      join(cwd, "package.json"),
+      JSON.stringify({ name: "test", version: "1.0.0" }),
+    );
+    init(["--platform=claude"]);
+
+    const { stdout, exitCode } = doctor();
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("OK — Installed Platforms");
+  });
+
+  it("reports malformed authoritative Installation State as missing platforms", () => {
+    writeFileSync(
+      join(cwd, "package.json"),
+      JSON.stringify({ name: "test", version: "1.0.0" }),
+    );
+    init(["--platform=codex"]);
+    writeFileSync(join(cwd, ".kflow/meta.json"), "{not-json");
+
+    const { stdout, exitCode } = doctor();
+
+    expect(exitCode).not.toBe(0);
+    expect(stdout).toContain("MISSING — Installed Platforms");
+  });
 });

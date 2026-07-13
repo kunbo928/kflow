@@ -1,5 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { PLATFORM_REGISTRY, type Platform } from "../project-onboarding/lifecycle.js";
+
+export type { Platform } from "../project-onboarding/lifecycle.js";
 
 export interface PlatformEntry {
   name: string;
@@ -28,8 +31,7 @@ export function writeMeta(cwd: string, meta: MetaJson): void {
   writeFileSync(path, JSON.stringify(meta, null, 2) + "\n");
 }
 
-const SUPPORTED = ["codex", "cursor", "claude", "opencode"] as const;
-export type Platform = (typeof SUPPORTED)[number];
+const SUPPORTED = Object.keys(PLATFORM_REGISTRY) as Platform[];
 
 export function isPlatform(name: string): name is Platform {
   return (SUPPORTED as readonly string[]).includes(name);
@@ -38,12 +40,9 @@ export function isPlatform(name: string): name is Platform {
 export const ALL_PLATFORMS: readonly Platform[] = SUPPORTED;
 
 /** Platform → runtime skill directory mapping. */
-export const RUNTIME_SKILL_DIRS: Record<Platform, string> = {
-  claude: ".claude/skills",
-  codex: ".agents/skills",
-  cursor: ".agents/skills",
-  opencode: ".agents/skills",
-};
+export const RUNTIME_SKILL_DIRS: Record<Platform, string> = Object.fromEntries(
+  ALL_PLATFORMS.map((platform) => [platform, PLATFORM_REGISTRY[platform].runtimeSkillDirectory]),
+) as Record<Platform, string>;
 
 /** Heuristic: which platforms appear to be installed (files exist + kflow marker). */
 export function detectInstalledPlatforms(cwd: string): Platform[] {

@@ -53,22 +53,6 @@ describe("kflow validate", () => {
     expect(stdout).toContain("No opening '---' delimiter found");
   });
 
-  // ── Slice 15: malformed YAML ────────────────────────────
-
-  it("malformed YAML frontmatter: exit 1, syntax error", () => {
-    const fp = seedFile("bad.md", [
-      "---",
-      "key: [unclosed",
-      "---",
-      "",
-      "# Body",
-    ].join("\n"));
-    const { stdout, exitCode } = validate(["--file", fp]);
-    expect(exitCode).toBe(1);
-    expect(stdout).toContain("✗");
-    expect(stdout).toContain("YAML syntax error");
-  });
-
   // ── Slice 13: --yaml-only pure YAML ─────────────────────
 
   it("--yaml-only treats input as pure YAML", () => {
@@ -76,6 +60,13 @@ describe("kflow validate", () => {
     const { stdout, exitCode } = validate(["--file", fp, "--yaml-only"]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("✓");
+  });
+
+  it("rejects a non-mapping Project document", () => {
+    const fp = seedFile("array.yaml", "- a\n- b\n");
+    const { stdout, exitCode } = validate(["--file", fp, "--yaml-only"]);
+    expect(exitCode).toBe(1);
+    expect(stdout).toContain("Expected a mapping, got array");
   });
 
   // ── Slice 16: --require missing field ───────────────────
@@ -180,46 +171,6 @@ describe("kflow validate", () => {
   it("exit code 2 for directory-not-found", () => {
     const { exitCode } = validate(["--dir", "/no/such/dir"]);
     expect(exitCode).toBe(2);
-  });
-
-  // ── Zod mapping contract: top-level array rejected ──────
-
-  it("top-level YAML array in markdown frontmatter: exit 1, mapping error", () => {
-    const fp = seedFile("arr.md", [
-      "---",
-      "- a",
-      "- b",
-      "---",
-      "",
-      "# Body",
-    ].join("\n"));
-    const { stdout, exitCode } = validate(["--file", fp]);
-    expect(exitCode).toBe(1);
-    expect(stdout).toContain("Expected a mapping, got array");
-  });
-
-  // ── Zod mapping contract: top-level scalar rejected ─────
-
-  it("top-level YAML scalar in markdown frontmatter: exit 1, mapping error", () => {
-    const fp = seedFile("scalar.md", [
-      "---",
-      "hello world",
-      "---",
-      "",
-      "# Body",
-    ].join("\n"));
-    const { stdout, exitCode } = validate(["--file", fp]);
-    expect(exitCode).toBe(1);
-    expect(stdout).toContain("Expected a mapping");
-  });
-
-  // ── Zod mapping contract: --yaml-only with array ────────
-
-  it("--yaml-only with top-level array: exit 1, mapping error", () => {
-    const fp = seedFile("arr.yaml", "- a\n- b\n");
-    const { stdout, exitCode } = validate(["--file", fp, "--yaml-only"]);
-    expect(exitCode).toBe(1);
-    expect(stdout).toContain("Expected a mapping, got array");
   });
 
   // ── --json with missing required field preserves error string

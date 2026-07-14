@@ -9,6 +9,9 @@ sentence of definition followed by where it lives in the code.
   as an npm package (`kflow` in `package.json`).
 - **Workflow CLI** — Deterministic project tool that onboards projects, syncs
   assets, validates documents, and discovers skills (`src/cli.ts`).
+- **Project Document** — A Markdown document with YAML frontmatter or a YAML-only
+  document discovered and parsed into shared format facts for Workflow CLI
+  policy (`src/project-document/index.ts`).
 - **Skill Workflow** (`k-flow`) — Workflow router inside the Agent Runtime
   that dispatches user intent to sub-skills (`skills/k-flow/SKILL.md`).
 - **KFlow Brand Mark** — kflow-specific textual identity shown by the Workflow

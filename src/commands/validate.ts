@@ -1,8 +1,13 @@
-import { readFileSync, existsSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
-import { parse as parseYaml } from "yaml";
+import { existsSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 import { z } from "zod";
-import fg from "fast-glob";
+import {
+  discoverProjectDocuments,
+  isYamlDocument,
+  loadProjectDocument,
+  type DiscoveredProjectDocument,
+  type LoadedProjectDocument,
+} from "../project-document/index.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,20 +18,6 @@ interface ValidationResult {
   errors: string[];
   warnings: string[];
   fields: string[];
-}
-
-// ---------------------------------------------------------------------------
-// YAML parsing
-// ---------------------------------------------------------------------------
-
-function parseYamlText(text: string): { ok: true; data: unknown } | { ok: false; error: string } {
-  try {
-    const result = parseYaml(text);
-    if (result === null || result === undefined) return { ok: true, data: {} };
-    return { ok: true, data: result };
-  } catch (e: any) {
-    return { ok: false, error: String(e.message ?? e) };
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -63,87 +54,33 @@ function formatZodErrors(input: unknown, result: { success: false; error: z.ZodE
 }
 
 // ---------------------------------------------------------------------------
-// Frontmatter extraction
-// ---------------------------------------------------------------------------
-
-function extractFrontmatter(text: string): { ok: true; yamlText: string } | { ok: false; error: string } {
-  if (!text.startsWith("---")) {
-    return { ok: false, error: "No opening '---' delimiter found" };
-  }
-
-  const end = text.indexOf("\n---", 3);
-  if (end === -1) {
-    return { ok: false, error: "No closing '---' delimiter found (frontmatter block not terminated)" };
-  }
-
-  const fmText = text.slice(3, end).trim();
-  if (!fmText) {
-    return { ok: false, error: "Frontmatter block is empty" };
-  }
-
-  return { ok: true, yamlText: fmText };
-}
-
-// ---------------------------------------------------------------------------
 // Validation logic
 // ---------------------------------------------------------------------------
 
-function validateFile(
-  filePath: string,
+function validateDocument(
+  document: LoadedProjectDocument,
   displayPath: string,
   requiredFields: string[],
-  mode: "markdown" | "yaml"
 ): ValidationResult {
   const result: ValidationResult = { file: displayPath, errors: [], warnings: [], fields: [] };
 
-  let text: string;
-  try {
-    text = readFileSync(filePath, "utf-8");
-  } catch (e: any) {
-    result.errors.push(`Cannot read file: ${e.message ?? e}`);
+  if (document.diagnostics.length > 0) {
+    result.errors.push(...document.diagnostics.map((diagnostic) => diagnostic.message));
     return result;
   }
 
-  let yamlText: string;
-  if (mode === "markdown") {
-    const extracted = extractFrontmatter(text);
-    if (!extracted.ok) {
-      result.errors.push(extracted.error);
-      return result;
-    }
-    yamlText = extracted.yamlText;
-  } else {
-    yamlText = text;
-  }
-
-  const parsed = parseYamlText(yamlText);
-  if (!parsed.ok) {
-    result.errors.push(`YAML syntax error: ${parsed.error}`);
-    return result;
-  }
-
-  // Validate the parsed data is a mapping with required fields via zod
   const schema = frontmatterSchema(requiredFields);
-  const validated = schema.safeParse(parsed.data);
+  const validated = schema.safeParse(document.data);
 
   if (validated.success) {
-    result.fields = Object.keys(validated.data);
+    result.fields = document.fields;
     return result;
   }
 
-  // Map zod errors back to the exact legacy strings
-  result.errors.push(...formatZodErrors(parsed.data, validated));
-
-  // Still extract whatever fields we can from the raw data for json output
-  if (typeof parsed.data === "object" && parsed.data !== null && !Array.isArray(parsed.data)) {
-    result.fields = Object.keys(parsed.data as Record<string, unknown>);
-  }
+  result.errors.push(...formatZodErrors(document.data, validated));
+  result.fields = document.fields;
 
   return result;
-}
-
-function isYamlExt(file: string): boolean {
-  return file.endsWith(".yaml") || file.endsWith(".yml");
 }
 
 // ---------------------------------------------------------------------------
@@ -232,15 +169,19 @@ export function run(argv: string[]): void {
       console.log(`Error: File not found: ${fp}`);
       process.exit(2);
     }
-    const mode = yamlOnly || isYamlExt(fp) ? "yaml" : "markdown";
-    results = [validateFile(fp, file, requireFields, mode)];
+    const source: DiscoveredProjectDocument = {
+      absolutePath: fp,
+      relativePath: file,
+      mode: yamlOnly || isYamlDocument(fp) ? "yaml" : "markdown",
+    };
+    results = [validateDocument(loadProjectDocument(source), file, requireFields)];
   } else {
     const dp = resolve(dir!);
     if (!existsSync(dp) || !statSync(dp).isDirectory()) {
       console.log(`Error: Directory not found: ${dp}`);
       process.exit(2);
     }
-    results = validateDirectory(dp, dir!, requireFields);
+    results = validateDirectory(dp, requireFields);
   }
 
   if (asJson) {
@@ -253,30 +194,17 @@ export function run(argv: string[]): void {
   process.exit(allOk ? 0 : 1);
 }
 
-const VALIDATE_PATTERNS = ["**/*.md", "**/*.yaml", "**/*.yml"];
-const IGNORE_PATTERNS = ["**/node_modules/**", "**/dist/**", "**/.git/**"];
-
-function validateDirectory(dp: string, displayDir: string, requireFields: string[]): ValidationResult[] {
+function validateDirectory(dp: string, requireFields: string[]): ValidationResult[] {
   const results: ValidationResult[] = [];
-  const root = resolve(displayDir);
+  const documents = discoverProjectDocuments(dp);
 
-  const files = fg.sync(VALIDATE_PATTERNS, {
-    cwd: dp,
-    absolute: true,
-    onlyFiles: true,
-    dot: true,
-    ignore: IGNORE_PATTERNS,
-  }).sort();
-
-  if (files.length === 0) {
+  if (documents.length === 0) {
     console.log(`No .md or .yaml files found under ${dp}`);
     process.exit(2);
   }
 
-  for (const full of files) {
-    const relPath = relative(root, full);
-    const mode = isYamlExt(full) ? "yaml" : "markdown";
-    results.push(validateFile(full, relPath, requireFields, mode));
+  for (const document of documents) {
+    results.push(validateDocument(loadProjectDocument(document), document.relativePath, requireFields));
   }
 
   return results;

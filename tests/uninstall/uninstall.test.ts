@@ -55,6 +55,27 @@ describe("kflow uninstall", () => {
     expect(existsSync(join(cwd, "AGENTS.md"))).toBe(true);
   });
 
+  it("platform dry-run reflects shared entry-file ownership from lifecycle state", () => {
+    run(["init", "--platform=codex,cursor"], cwd);
+
+    const { stdout, exitCode } = uninstall(["--platform=codex"]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toMatch(/Would preserve: AGENTS\.md.*shared/i);
+    expect(stdout).not.toContain("Would remove: AGENTS.md");
+  });
+
+  it("multi-platform dry-run plans the final shared owner removal as one operation", () => {
+    run(["init", "--platform=codex,cursor"], cwd);
+
+    const { stdout, exitCode } = uninstall(["--platform=codex,cursor"]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Would remove: AGENTS.md");
+    expect(stdout).toContain("Would remove: kflow skills from .agents/skills");
+    expect(stdout).not.toMatch(/Would preserve: AGENTS\.md.*shared/i);
+  });
+
   it("full dry-run lists CLAUDE.md after claude install", () => {
     run(["init", "--platform=claude"], cwd);
     const { stdout, exitCode } = uninstall(["--platform=claude"]);

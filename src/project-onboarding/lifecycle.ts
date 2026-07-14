@@ -44,13 +44,16 @@ export interface ProjectFilesystem {
   writeText(path: string, text: string): void;
   copyDirectory(source: string, destination: string): void;
   listDirectories(path: string): string[];
-  removeDirectory(path: string): void;
+  listEntries(path: string): string[];
+  removePath(path: string): void;
 }
 
 export interface ProjectOnboardingLifecycle {
   inspect(cwd: string): ProjectOnboardingInspection;
   initialize(input: InitializeProjectOnboardingInput): ProjectOnboardingInitialization;
   synchronize(input: SynchronizeProjectOnboardingInput): ProjectOnboardingSynchronization;
+  removePlatforms(input: RemoveProjectOnboardingPlatformsInput): ProjectOnboardingRemoval;
+  removeAllAssets(input: RemoveProjectOnboardingAssetsInput): ProjectOnboardingAssetRemoval;
 }
 
 export interface InitializeProjectOnboardingInput {
@@ -126,6 +129,60 @@ export type ProjectOnboardingSynchronizationAction =
   | { kind: "skill-removed"; directory: string; skill: string }
   | { kind: "owned-directory-mirrored"; directory: ".kflow/reference" | ".kflow/tools" };
 
+export interface RemoveProjectOnboardingPlatformsInput {
+  cwd: string;
+  platforms: Platform[];
+  apply?: boolean;
+}
+
+export type ProjectOnboardingRemovalAction =
+  | { kind: "entry-file-removed"; file: string }
+  | { kind: "entry-file-preserved"; file: string; reason: "shared" | "user-owned" }
+  | { kind: "skill-removed"; directory: string; skill: string }
+  | { kind: "runtime-directory-removed"; directory: string }
+  | { kind: "runtime-directory-preserved"; directory: string; reason: "shared" }
+  | { kind: "parent-directory-preserved"; directory: string; reason: "non-kflow-content" };
+
+export type ProjectOnboardingRemoval =
+  | {
+      status: "completed";
+      removedPlatforms: Platform[];
+      remainingPlatforms: Platform[];
+      actions: ProjectOnboardingRemovalAction[];
+      warnings: Array<"legacy-state-not-persisted">;
+    }
+  | {
+      status: "blocked";
+      reason: "unsafe-installation-state";
+      installationState: "malformed" | "invalid";
+    }
+  | {
+      status: "failed";
+      reason: "filesystem-error";
+      message: string;
+      partialChanges: boolean;
+      completedActions: ProjectOnboardingRemovalAction[];
+    };
+
+export interface RemoveProjectOnboardingAssetsInput {
+  cwd: string;
+}
+
+export type ProjectOnboardingAssetRemoval =
+  | {
+      status: "completed";
+      actions: ProjectOnboardingRemovalAction[];
+      projectKnowledgeRemoved: boolean;
+      warnings: Array<"unsafe-state-used-baseline">;
+    }
+  | {
+      status: "failed";
+      reason: "filesystem-error";
+      message: string;
+      partialChanges: boolean;
+      completedActions: ProjectOnboardingRemovalAction[];
+    };
+
 const AGGREGATION_DIRECTORIES = [
   "requirements", "roadmap", "features", "issues", "refactors", "brainstorms", "compound",
 ];
@@ -180,7 +237,8 @@ const nodeFilesystem: ProjectFilesystem = {
   listDirectories: (path) => readdirSync(path, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name),
-  removeDirectory: (path) => rmSync(path, { recursive: true, force: true }),
+  listEntries: (path) => readdirSync(path),
+  removePath: (path) => rmSync(path, { recursive: true, force: true }),
 };
 
 export interface AuthoritativeInstallationState {
@@ -235,6 +293,8 @@ export function createProjectOnboardingLifecycle(
     inspect: (cwd) => inspect(cwd, filesystem),
     initialize: (input) => initialize(input, filesystem),
     synchronize: (input) => synchronize(input, filesystem),
+    removePlatforms: (input) => removePlatforms(input, filesystem),
+    removeAllAssets: (input) => removeAllAssets(input, filesystem),
   };
 }
 
@@ -254,6 +314,223 @@ export function synchronizeProjectOnboarding(
   input: SynchronizeProjectOnboardingInput,
 ): ProjectOnboardingSynchronization {
   return defaultLifecycle.synchronize(input);
+}
+
+export function removeProjectOnboardingPlatforms(
+  input: RemoveProjectOnboardingPlatformsInput,
+): ProjectOnboardingRemoval {
+  return defaultLifecycle.removePlatforms(input);
+}
+
+export function removeProjectOnboardingAssets(
+  input: RemoveProjectOnboardingAssetsInput,
+): ProjectOnboardingAssetRemoval {
+  return defaultLifecycle.removeAllAssets(input);
+}
+
+function removeAllAssets(
+  input: RemoveProjectOnboardingAssetsInput,
+  filesystem: ProjectFilesystem,
+): ProjectOnboardingAssetRemoval {
+  const { cwd } = input;
+  const state = inspect(cwd, filesystem).installationState;
+  const ownedSkills = state.kind === "authoritative" ? state.ownedSkills : [...PRE_OWNERSHIP_SKILLS];
+  const warnings: Array<"unsafe-state-used-baseline"> = state.kind === "malformed" || state.kind === "invalid"
+    ? ["unsafe-state-used-baseline"]
+    : [];
+  const actions: ProjectOnboardingRemovalAction[] = [];
+  let mutationStarted = false;
+
+  try {
+    const runtimeDirectories = [...new Set(
+      Object.values(PLATFORM_REGISTRY).map((platform) => platform.runtimeSkillDirectory),
+    )];
+    for (const directory of runtimeDirectories) {
+      for (const skill of ownedSkills) {
+        const skillPath = join(cwd, directory, skill);
+        if (!filesystem.exists(skillPath)) continue;
+        mutationStarted = true;
+        filesystem.removePath(skillPath);
+        actions.push({ kind: "skill-removed", directory, skill });
+      }
+      pruneRuntimeDirectories(cwd, directory, filesystem, actions);
+    }
+
+    const entryFiles = [...new Set(
+      Object.values(PLATFORM_REGISTRY).map((platform) => platform.entryFile),
+    )];
+    for (const file of entryFiles) {
+      const path = join(cwd, file);
+      if (isKflowOwnedEntryFile(path, filesystem)) {
+        filesystem.removePath(path);
+        actions.push({ kind: "entry-file-removed", file });
+      } else if (filesystem.exists(path)) {
+        actions.push({ kind: "entry-file-preserved", file, reason: "user-owned" });
+      }
+    }
+
+    const projectKnowledgePath = join(cwd, ".kflow");
+    const projectKnowledgeRemoved = filesystem.exists(projectKnowledgePath);
+    if (projectKnowledgeRemoved) {
+      filesystem.removePath(projectKnowledgePath);
+    }
+    return { status: "completed", actions, projectKnowledgeRemoved, warnings };
+  } catch (error) {
+    return {
+      status: "failed",
+      reason: "filesystem-error",
+      message: error instanceof Error ? error.message : String(error),
+      partialChanges: mutationStarted,
+      completedActions: actions,
+    };
+  }
+}
+
+function removePlatforms(
+  input: RemoveProjectOnboardingPlatformsInput,
+  filesystem: ProjectFilesystem,
+): ProjectOnboardingRemoval {
+  const { cwd, platforms, apply = true } = input;
+  const state = inspect(cwd, filesystem).installationState;
+  if (state.kind === "malformed" || state.kind === "invalid") {
+    return {
+      status: "blocked",
+      reason: "unsafe-installation-state",
+      installationState: state.kind,
+    };
+  }
+
+  const installed = state.kind === "absent" ? [] : state.platforms;
+  const removing = new Set(platforms.filter((platform) => installed.includes(platform)));
+  const remaining = installed.filter((platform) => !removing.has(platform));
+  const ownedSkills = state.kind === "authoritative" ? state.ownedSkills : [...PRE_OWNERSHIP_SKILLS];
+  const actions: ProjectOnboardingRemovalAction[] = [];
+  const processedEntryFiles = new Set<string>();
+  const processedRuntimeDirectories = new Set<string>();
+  let mutationStarted = false;
+
+  try {
+    for (const platform of removing) {
+      const target = PLATFORM_REGISTRY[platform];
+      const entryShared = remaining.some(
+        (other) => PLATFORM_REGISTRY[other].entryFile === target.entryFile,
+      );
+      if (!processedEntryFiles.has(target.entryFile)) {
+        if (entryShared) {
+          actions.push({ kind: "entry-file-preserved", file: target.entryFile, reason: "shared" });
+        } else {
+          const entryPath = join(cwd, target.entryFile);
+          if (isKflowOwnedEntryFile(entryPath, filesystem)) {
+            if (apply) {
+              mutationStarted = true;
+              filesystem.removePath(entryPath);
+            }
+            actions.push({ kind: "entry-file-removed", file: target.entryFile });
+          } else if (filesystem.exists(entryPath)) {
+            actions.push({ kind: "entry-file-preserved", file: target.entryFile, reason: "user-owned" });
+          }
+        }
+        processedEntryFiles.add(target.entryFile);
+      }
+
+      const runtimeShared = remaining.some(
+        (other) => PLATFORM_REGISTRY[other].runtimeSkillDirectory === target.runtimeSkillDirectory,
+      );
+      if (processedRuntimeDirectories.has(target.runtimeSkillDirectory)) {
+        continue;
+      } else if (runtimeShared) {
+        actions.push({
+          kind: "runtime-directory-preserved",
+          directory: target.runtimeSkillDirectory,
+          reason: "shared",
+        });
+      } else {
+        for (const skill of ownedSkills) {
+          const skillPath = join(cwd, target.runtimeSkillDirectory, skill);
+          if (!filesystem.exists(skillPath)) continue;
+          if (apply) {
+            mutationStarted = true;
+            filesystem.removePath(skillPath);
+          }
+          actions.push({ kind: "skill-removed", directory: target.runtimeSkillDirectory, skill });
+        }
+        pruneRuntimeDirectories(
+          cwd,
+          target.runtimeSkillDirectory,
+          filesystem,
+          actions,
+          apply,
+          apply ? [] : ownedSkills,
+        );
+      }
+      processedRuntimeDirectories.add(target.runtimeSkillDirectory);
+    }
+
+    if (apply && state.kind === "authoritative") {
+      const entries = readPersistedEntries(cwd, filesystem)
+        .filter((entry) => !removing.has(entry.name));
+      filesystem.writeText(join(cwd, ".kflow", "meta.json"), JSON.stringify({
+        platforms: entries,
+        version: state.version,
+        ownedSkills: state.ownedSkills,
+      }, null, 2) + "\n");
+    }
+
+    return {
+      status: "completed",
+      removedPlatforms: [...removing],
+      remainingPlatforms: remaining,
+      actions,
+      warnings: state.kind === "inferred" ? ["legacy-state-not-persisted"] : [],
+    };
+  } catch (error) {
+    return {
+      status: "failed",
+      reason: "filesystem-error",
+      message: error instanceof Error ? error.message : String(error),
+      partialChanges: mutationStarted,
+      completedActions: actions,
+    };
+  }
+}
+
+function isKflowOwnedEntryFile(path: string, filesystem: ProjectFilesystem): boolean {
+  if (!filesystem.exists(path)) return false;
+  try {
+    return filesystem.readText(path).includes("Generated by kflow");
+  } catch {
+    return false;
+  }
+}
+
+function pruneRuntimeDirectories(
+  cwd: string,
+  directory: string,
+  filesystem: ProjectFilesystem,
+  actions: ProjectOnboardingRemovalAction[],
+  apply = true,
+  plannedRemovedEntries: string[] = [],
+): void {
+  const runtimePath = join(cwd, directory);
+  const runtimeWillBeEmpty = filesystem.exists(runtimePath)
+    && filesystem.listEntries(runtimePath)
+      .filter((entry) => !plannedRemovedEntries.includes(entry)).length === 0;
+  if (runtimeWillBeEmpty) {
+    if (apply) filesystem.removePath(runtimePath);
+    actions.push({ kind: "runtime-directory-removed", directory });
+  }
+
+  const parentDirectory = directory.split("/")[0];
+  const parentPath = join(cwd, parentDirectory);
+  if (!filesystem.exists(parentPath)) return;
+  const runtimeName = directory.split("/").at(-1);
+  const parentEntries = filesystem.listEntries(parentPath)
+    .filter((entry) => !(runtimeWillBeEmpty && entry === runtimeName));
+  if (parentEntries.length === 0) {
+    if (apply) filesystem.removePath(parentPath);
+  } else {
+    actions.push({ kind: "parent-directory-preserved", directory: parentDirectory, reason: "non-kflow-content" });
+  }
 }
 
 function synchronize(
@@ -290,12 +567,12 @@ function synchronize(
       for (const skill of state.kind === "authoritative" ? state.ownedSkills : []) {
         if (skills.includes(skill)) continue;
         mutationStarted = true;
-        filesystem.removeDirectory(join(cwd, directory, skill));
+        filesystem.removePath(join(cwd, directory, skill));
         actions.push({ kind: "skill-removed", directory, skill });
       }
       for (const skill of skills) {
         mutationStarted = true;
-        filesystem.removeDirectory(join(cwd, directory, skill));
+        filesystem.removePath(join(cwd, directory, skill));
         filesystem.copyDirectory(join(pkgRoot, "skills", skill), join(cwd, directory, skill));
         actions.push({ kind: "skill-mirrored", directory, skill });
       }
@@ -306,7 +583,7 @@ function synchronize(
       ["tools", ".kflow/tools"],
     ] as const) {
       mutationStarted = true;
-      filesystem.removeDirectory(join(cwd, directory));
+      filesystem.removePath(join(cwd, directory));
       filesystem.copyDirectory(join(pkgRoot, source), join(cwd, directory));
       actions.push({ kind: "owned-directory-mirrored", directory });
     }

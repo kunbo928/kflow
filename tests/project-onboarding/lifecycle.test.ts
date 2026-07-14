@@ -128,6 +128,33 @@ describe("Project Onboarding lifecycle", () => {
       expect(repeated.actions.filter((action) => action.kind.endsWith("removed"))).toEqual([]);
     }
   });
+
+  it("plans full asset removal through the lifecycle without mutating the project", () => {
+    const cwd = project();
+    const pkgRoot = resolve(import.meta.dirname, "../..");
+    initializeProjectOnboarding({
+      cwd, pkgRoot, platforms: ["claude", "codex"], version: "2.0.0",
+      installedAt: "2026-07-13T00:00:00.000Z",
+    });
+    writeFileSync(join(cwd, "CLAUDE.md"), "user instructions");
+
+    const plan = removeProjectOnboardingAssets({ cwd, apply: false });
+
+    expect(plan).toMatchObject({
+      status: "completed",
+      projectKnowledgeRemoved: true,
+      actions: expect.arrayContaining([
+        { kind: "entry-file-removed", file: "AGENTS.md" },
+        { kind: "entry-file-preserved", file: "CLAUDE.md", reason: "user-owned" },
+        { kind: "skill-removed", directory: ".agents/skills", skill: "k-flow" },
+        { kind: "skill-removed", directory: ".claude/skills", skill: "k-flow" },
+      ]),
+    });
+    expect(existsSync(join(cwd, ".kflow/meta.json"))).toBe(true);
+    expect(existsSync(join(cwd, "AGENTS.md"))).toBe(true);
+    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
+    expect(readFileSync(join(cwd, "CLAUDE.md"), "utf-8")).toBe("user instructions");
+  });
   it("removes platforms according to shared Runtime Skill Directory and entry-file ownership", () => {
     const cwd = project();
     const pkgRoot = resolve(import.meta.dirname, "../..");

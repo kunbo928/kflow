@@ -25,6 +25,11 @@ export const PLATFORM_REGISTRY = {
 } as const;
 
 export type Platform = keyof typeof PLATFORM_REGISTRY;
+export const ALL_PLATFORMS = Object.keys(PLATFORM_REGISTRY) as Platform[];
+
+export function isPlatform(name: string): name is Platform {
+  return (ALL_PLATFORMS as readonly string[]).includes(name);
+}
 
 // Frozen migration baseline: every Packaged Skill Asset shipped before
 // Installation State began recording ownedSkills. Do not derive this from the
@@ -166,6 +171,7 @@ export type ProjectOnboardingRemoval =
 
 export interface RemoveProjectOnboardingAssetsInput {
   cwd: string;
+  apply?: boolean;
 }
 
 export type ProjectOnboardingAssetRemoval =
@@ -332,7 +338,7 @@ function removeAllAssets(
   input: RemoveProjectOnboardingAssetsInput,
   filesystem: ProjectFilesystem,
 ): ProjectOnboardingAssetRemoval {
-  const { cwd } = input;
+  const { cwd, apply = true } = input;
   const state = inspect(cwd, filesystem).installationState;
   const ownedSkills = state.kind === "authoritative" ? state.ownedSkills : [...PRE_OWNERSHIP_SKILLS];
   const warnings: Array<"unsafe-state-used-baseline"> = state.kind === "malformed" || state.kind === "invalid"
@@ -349,11 +355,13 @@ function removeAllAssets(
       for (const skill of ownedSkills) {
         const skillPath = join(cwd, directory, skill);
         if (!filesystem.exists(skillPath)) continue;
-        mutationStarted = true;
-        filesystem.removePath(skillPath);
+        if (apply) {
+          mutationStarted = true;
+          filesystem.removePath(skillPath);
+        }
         actions.push({ kind: "skill-removed", directory, skill });
       }
-      pruneRuntimeDirectories(cwd, directory, filesystem, actions);
+      pruneRuntimeDirectories(cwd, directory, filesystem, actions, apply, apply ? [] : ownedSkills);
     }
 
     const entryFiles = [...new Set(
@@ -362,7 +370,7 @@ function removeAllAssets(
     for (const file of entryFiles) {
       const path = join(cwd, file);
       if (isKflowOwnedEntryFile(path, filesystem)) {
-        filesystem.removePath(path);
+        if (apply) filesystem.removePath(path);
         actions.push({ kind: "entry-file-removed", file });
       } else if (filesystem.exists(path)) {
         actions.push({ kind: "entry-file-preserved", file, reason: "user-owned" });
@@ -371,7 +379,7 @@ function removeAllAssets(
 
     const projectKnowledgePath = join(cwd, ".kflow");
     const projectKnowledgeRemoved = filesystem.exists(projectKnowledgePath);
-    if (projectKnowledgeRemoved) {
+    if (apply && projectKnowledgeRemoved) {
       filesystem.removePath(projectKnowledgePath);
     }
     return { status: "completed", actions, projectKnowledgeRemoved, warnings };

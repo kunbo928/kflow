@@ -1,17 +1,15 @@
-import { existsSync, rmSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { checkbox, confirm } from "@inquirer/prompts";
 import chalk from "chalk";
 import {
   ALL_PLATFORMS,
-  detectInstalledPlatforms,
-  readMeta,
-  type Platform,
-} from "./meta.js";
-import {
+  inspectProjectOnboarding,
+  isPlatform,
   removeProjectOnboardingAssets,
   removeProjectOnboardingPlatforms,
+  type Platform,
   type ProjectOnboardingRemovalAction,
 } from "../project-onboarding/lifecycle.js";
 
@@ -48,9 +46,9 @@ function runCommand(plannedCmd: string, envKey: string, cwd: string): number {
 
 function renderRemovalActions(
   actions: ProjectOnboardingRemovalAction[],
-  options: { planned?: boolean; indent?: string; includeSkills?: boolean } = {},
+  options: { planned?: boolean; indent?: string; includeSkills?: boolean; separator?: string } = {},
 ): void {
-  const { planned = false, indent = "", includeSkills = true } = options;
+  const { planned = false, indent = "", includeSkills = true, separator = ": " } = options;
   const skillDirs = new Set<string>();
   for (const action of actions) {
     if (action.kind === "skill-removed") {
@@ -72,12 +70,12 @@ function renderRemovalActions(
           : action.kind === "entry-file-preserved"
             ? action.reason
             : undefined;
-    console.log(`${indent}${label}: ${target}${detail ? ` (${detail})` : ""}`);
+    console.log(`${indent}${label}${separator}${target}${detail ? ` (${detail})` : ""}`);
   }
 
   for (const directory of skillDirs) {
     const label = planned ? "Would remove" : `${chalk.green("✓")} Removed`;
-    console.log(`${indent}${label}: kflow skills from ${directory}`);
+    console.log(`${indent}${label}${separator}kflow skills from ${directory}`);
   }
 }
 
@@ -144,7 +142,7 @@ export async function run(argv: string[]): Promise<void> {
   if (platformList) {
     const names = platformList.split(",").map((s) => s.trim()).filter(Boolean);
     for (const n of names) {
-      if (!(ALL_PLATFORMS as readonly string[]).includes(n)) {
+      if (!isPlatform(n)) {
         console.log(
           chalk.red(`kflow uninstall: unsupported platform '${n}'. Supported: ${ALL_PLATFORMS.join(", ")}`)
         );
@@ -183,18 +181,15 @@ export async function run(argv: string[]): Promise<void> {
     // Legacy full-uninstall dry-run
     console.log("kflow uninstall (dry-run)");
 
-    if (existsSync(join(cwd, ".kflow"))) {
-      console.log("Would remove   : .kflow");
-      console.log("  ⚠ .kflow contains user-authored project knowledge. Back up before applying.");
-    }
-    if (existsSync(join(cwd, ".agents", "skills"))) {
-      console.log("Would remove   : kflow skills from .agents/skills");
-    }
-    const entryFiles = ["AGENTS.md", "CLAUDE.md"];
-    for (const f of entryFiles) {
-      if (existsSync(join(cwd, f))) {
-        console.log(`Would remove   : ${f}`);
+    const plan = removeProjectOnboardingAssets({ cwd, apply: false });
+    if (plan.status === "completed") {
+      if (plan.projectKnowledgeRemoved) {
+        console.log("Would remove   : .kflow");
+        console.log("  ⚠ .kflow contains user-authored project knowledge. Back up before applying.");
       }
+      renderRemovalActions(plan.actions, { planned: true, separator: "   : " });
+    } else {
+      console.log(`Cannot plan asset removal: ${plan.message}`);
     }
     const pm = detectPackageManager(cwd);
     console.log(`Package manager : ${pm}`);
@@ -218,7 +213,10 @@ export async function run(argv: string[]): Promise<void> {
   }
 
   // Interactive: no flags, pick platforms
-  const fileInstalled = detectInstalledPlatforms(cwd);
+  const state = inspectProjectOnboarding(cwd).installationState;
+  const fileInstalled = state.kind === "authoritative" || state.kind === "inferred"
+    ? state.platforms
+    : [];
   if (fileInstalled.length === 0) {
     console.log(chalk.yellow("No kflow platform integrations detected."));
     console.log("To fully remove kflow: kflow uninstall --apply");
@@ -241,9 +239,7 @@ export async function run(argv: string[]): Promise<void> {
   }
 
   // Last-platform warning
-  const meta = readMeta(cwd);
-  const allKnown = meta?.platforms?.map((e) => e.name) ?? fileInstalled;
-  const remainingAfter = allKnown.filter((p) => !selected.includes(p as Platform));
+  const remainingAfter = fileInstalled.filter((p) => !selected.includes(p));
   if (remainingAfter.length === 0) {
     const proceed = await confirm({
       message: chalk.yellow(
@@ -257,8 +253,6 @@ export async function run(argv: string[]): Promise<void> {
     }
     // Full uninstall
     await applyFullUninstall(cwd);
-    // Remove meta.json
-    try { rmSync(join(cwd, ".kflow", "meta.json")); } catch { /* ignore */ }
     return;
   }
 

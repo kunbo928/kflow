@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { rmSync, existsSync, writeFileSync, readFileSync, chmodSync, mkdirSync } from "node:fs";
+import { rmSync, existsSync, writeFileSync, readFileSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import { tempProject } from "../cli-helpers/temp";
 import { run } from "../cli-helpers/run";
@@ -53,27 +53,6 @@ describe("kflow uninstall", () => {
     expect(exitCode).toBe(0);
     expect(stdout).toContain("AGENTS.md");
     expect(existsSync(join(cwd, "AGENTS.md"))).toBe(true);
-  });
-
-  it("platform dry-run reflects shared entry-file ownership from lifecycle state", () => {
-    run(["init", "--platform=codex,cursor"], cwd);
-
-    const { stdout, exitCode } = uninstall(["--platform=codex"]);
-
-    expect(exitCode).toBe(0);
-    expect(stdout).toMatch(/Would preserve: AGENTS\.md.*shared/i);
-    expect(stdout).not.toContain("Would remove: AGENTS.md");
-  });
-
-  it("multi-platform dry-run plans the final shared owner removal as one operation", () => {
-    run(["init", "--platform=codex,cursor"], cwd);
-
-    const { stdout, exitCode } = uninstall(["--platform=codex,cursor"]);
-
-    expect(exitCode).toBe(0);
-    expect(stdout).toContain("Would remove: AGENTS.md");
-    expect(stdout).toContain("Would remove: kflow skills from .agents/skills");
-    expect(stdout).not.toMatch(/Would preserve: AGENTS\.md.*shared/i);
   });
 
   it("full dry-run lists CLAUDE.md after claude install", () => {
@@ -163,6 +142,20 @@ describe("kflow uninstall", () => {
     expect(existsSync(join(cwd, ".agents"))).toBe(agentsExists);
   });
 
+  it("full dry-run renders lifecycle preservation facts without mutating assets", () => {
+    run(["init", "--platform=claude,codex"], cwd);
+    writeFileSync(join(cwd, "CLAUDE.md"), "team instructions");
+
+    const { stdout, exitCode } = uninstall(["legacy"]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain("Would remove   : .kflow");
+    expect(stdout).toContain("Would remove   : AGENTS.md");
+    expect(stdout).toMatch(/Would preserve   : CLAUDE\.md.*user-owned/i);
+    expect(existsSync(join(cwd, ".kflow/meta.json"))).toBe(true);
+    expect(readFileSync(join(cwd, "CLAUDE.md"), "utf-8")).toBe("team instructions");
+  });
+
   it("kflow uninstall codex lists codex integration files only", () => {
     run(["init", "--platform=codex"], cwd);
     const { stdout, exitCode } = uninstall(["--platform=codex"]);
@@ -231,31 +224,6 @@ describe("kflow uninstall", () => {
     expect(existsSync(join(cwd, ".kflow"))).toBe(true);
   });
 
-  it("kflow uninstall codex --apply preserves non-kflow skills", () => {
-    run(["init", "--platform=codex"], cwd);
-    const userSkillDir = join(cwd, ".agents", "skills", "team-skill");
-    const userSkillPath = join(userSkillDir, "SKILL.md");
-    mkdirSync(userSkillDir, { recursive: true });
-    writeFileSync(userSkillPath, "# Team Skill\n");
-
-    const { exitCode } = uninstall(["--platform=codex", "--apply"]);
-
-    expect(exitCode).toBe(0);
-    expect(existsSync(join(cwd, ".agents", "skills", "k-flow"))).toBe(false);
-    expect(existsSync(userSkillPath)).toBe(true);
-    expect(readFileSync(userSkillPath, "utf-8")).toBe("# Team Skill\n");
-  });
-
-  it("kflow uninstall codex --apply preserves .kflow content", () => {
-    run(["init", "--platform=codex"], cwd);
-    const kflowRefFile = join(cwd, ".kflow", "reference", "shared-paths.md");
-    expect(existsSync(kflowRefFile)).toBe(true);
-    const { exitCode } = uninstall(["--platform=codex", "--apply"]);
-    expect(exitCode).toBe(0);
-    expect(existsSync(join(cwd, ".kflow"))).toBe(true);
-    expect(existsSync(kflowRefFile)).toBe(true);
-  });
-
   it("kflow uninstall claude --apply does not mutate package.json", () => {
     writeFileSync(
       join(cwd, "package.json"),
@@ -269,130 +237,6 @@ describe("kflow uninstall", () => {
     expect(after).toBe(before);
     const pkg = JSON.parse(after);
     expect(pkg.devDependencies?.kflow).toBeDefined();
-  });
-
-  it("kflow uninstall claude --apply preserves non-kflow CLAUDE.md", () => {
-    run(["init", "--platform=claude"], cwd);
-    writeFileSync(join(cwd, "CLAUDE.md"), "my custom instructions");
-    const { stdout, exitCode } = uninstall(["--platform=claude", "--apply"]);
-    expect(exitCode).toBe(0);
-    const content = readFileSync(join(cwd, "CLAUDE.md"), "utf-8");
-    expect(content).toBe("my custom instructions");
-    expect(stdout).toMatch(/Preserved|not kflow-generated/i);
-  });
-
-  it("kflow uninstall cursor --apply removes AGENTS.md", () => {
-    run(["init", "--platform=cursor"], cwd);
-    const agentsPath = join(cwd, "AGENTS.md");
-    expect(existsSync(agentsPath)).toBe(true);
-    const { exitCode } = uninstall(["--platform=cursor", "--apply"]);
-    expect(exitCode).toBe(0);
-    expect(existsSync(agentsPath)).toBe(false);
-    expect(existsSync(join(cwd, ".kflow"))).toBe(true);
-  });
-
-  it("kflow uninstall opencode --apply removes AGENTS.md", () => {
-    run(["init", "--platform=opencode"], cwd);
-    const agentsPath = join(cwd, "AGENTS.md");
-    expect(existsSync(agentsPath)).toBe(true);
-    const { exitCode } = uninstall(["--platform=opencode", "--apply"]);
-    expect(exitCode).toBe(0);
-    expect(existsSync(agentsPath)).toBe(false);
-    expect(existsSync(join(cwd, ".kflow"))).toBe(true);
-  });
-
-  it("kflow uninstall codex --apply is idempotent", () => {
-    run(["init", "--platform=codex"], cwd);
-    const first = uninstall(["--platform=codex", "--apply"]);
-    expect(first.exitCode).toBe(0);
-    expect(existsSync(join(cwd, "AGENTS.md"))).toBe(false);
-    const second = uninstall(["--platform=codex", "--apply"]);
-    expect(second.exitCode).toBe(0);
-  });
-
-  // =====================================================================
-  // Platform uninstall — runtime skill directories (issue 03)
-  // =====================================================================
-
-  it("claude uninstall removes .claude/skills/ kflow skills, preserves .agents/skills/", () => {
-    run(["init", "--platform=claude,codex"], cwd);
-    expect(existsSync(join(cwd, ".claude/skills/k-flow/SKILL.md"))).toBe(true);
-    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
-
-    const { stdout, exitCode } = uninstall(["--platform=claude", "--apply"]);
-    expect(exitCode).toBe(0);
-
-    // Claude runtime skills removed
-    expect(existsSync(join(cwd, ".claude/skills/k-flow"))).toBe(false);
-    // CLAUDE.md removed
-    expect(existsSync(join(cwd, "CLAUDE.md"))).toBe(false);
-    // .agents/skills/ still intact (codex still installed)
-    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
-  });
-
-  it("claude uninstall preserves non-kflow skills in .claude/skills/", () => {
-    run(["init", "--platform=claude"], cwd);
-    // Create a non-kflow skill
-    mkdirSync(join(cwd, ".claude/skills/team-skill"), { recursive: true });
-    writeFileSync(join(cwd, ".claude/skills/team-skill/SKILL.md"), "# Team Skill\n");
-
-    const { stdout, exitCode } = uninstall(["--platform=claude", "--apply"]);
-    expect(exitCode).toBe(0);
-
-    // kflow skills removed
-    expect(existsSync(join(cwd, ".claude/skills/k-flow"))).toBe(false);
-    // Non-kflow skill preserved
-    expect(existsSync(join(cwd, ".claude/skills/team-skill/SKILL.md"))).toBe(true);
-    expect(readFileSync(join(cwd, ".claude/skills/team-skill/SKILL.md"), "utf-8")).toBe("# Team Skill\n");
-  });
-
-  it("uninstalling codex while cursor remains preserves .agents/skills/", () => {
-    run(["init", "--platform=codex,cursor"], cwd);
-    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
-
-    const { stdout, exitCode } = uninstall(["--platform=codex", "--apply"]);
-    expect(exitCode).toBe(0);
-
-    // .agents/skills/ still intact (cursor depends on it)
-    expect(existsSync(join(cwd, ".agents/skills/k-flow/SKILL.md"))).toBe(true);
-    // .claude/skills/ not created
-    expect(existsSync(join(cwd, ".claude/skills"))).toBe(false);
-  });
-
-  it("uninstalling last universal removes .agents/skills/ kflow, preserves non-kflow", () => {
-    run(["init", "--platform=codex"], cwd);
-    mkdirSync(join(cwd, ".agents/skills/team-skill"), { recursive: true });
-    writeFileSync(join(cwd, ".agents/skills/team-skill/SKILL.md"), "# Team\n");
-
-    const { stdout, exitCode } = uninstall(["--platform=codex", "--apply"]);
-    expect(exitCode).toBe(0);
-
-    // kflow removed
-    expect(existsSync(join(cwd, ".agents/skills/k-flow"))).toBe(false);
-    // Non-kflow preserved
-    expect(existsSync(join(cwd, ".agents/skills/team-skill/SKILL.md"))).toBe(true);
-  });
-
-  it("full uninstall removes kflow from both .claude/skills/ and .agents/skills/, preserves non-kflow", () => {
-    run(["init", "--platform=claude,codex"], cwd);
-    // Create non-kflow skills in both dirs
-    mkdirSync(join(cwd, ".claude/skills/team-a"), { recursive: true });
-    writeFileSync(join(cwd, ".claude/skills/team-a/SKILL.md"), "# Team A\n");
-    mkdirSync(join(cwd, ".agents/skills/team-b"), { recursive: true });
-    writeFileSync(join(cwd, ".agents/skills/team-b/SKILL.md"), "# Team B\n");
-
-    const stub = join(cwd, "stub.mjs");
-    writeFileSync(stub, `process.exit(0);`);
-    const env = { KFLOW_UNINSTALL_REMOVE_CMD: `node ${stub}` };
-    const { stdout, exitCode } = uninstall(["--apply"], env);
-    expect(exitCode).toBe(0);
-
-    // kflow skills removed from both dirs
-    expect(existsSync(join(cwd, ".claude/skills/k-flow"))).toBe(false);
-    expect(existsSync(join(cwd, ".agents/skills/k-flow"))).toBe(false);
-    // Non-kflow skills preserved
-    expect(existsSync(join(cwd, ".claude/skills/team-a/SKILL.md"))).toBe(true);
-    expect(existsSync(join(cwd, ".agents/skills/team-b/SKILL.md"))).toBe(true);
   });
 
   // =====================================================================

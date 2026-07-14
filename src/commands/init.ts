@@ -5,12 +5,10 @@ import chalk from "chalk";
 import ora from "ora";
 import {
   ALL_PLATFORMS,
-  isPlatform,
-  type Platform,
-} from "./meta.js";
-import {
   initializeProjectOnboarding,
   inspectProjectOnboarding,
+  isPlatform,
+  type Platform,
 } from "../project-onboarding/lifecycle.js";
 
 function pkgVersion(pkgRoot: string): string {

@@ -20,6 +20,121 @@ describe("Package Manager execution", () => {
     });
   });
 
+  it("plans npm package removal through the same fallback selection", () => {
+    const execution = createPackageManagerExecution({
+      filesystem: { exists: () => false },
+      process: { run: () => 0 },
+    });
+
+    expect(execution.planRemoval({ cwd: "/project" })).toEqual({
+      packageManager: "npm",
+      remove: { command: "npm uninstall kflow" },
+    });
+  });
+
+  it.each([
+    ["pnpm-lock.yaml", "pnpm", "pnpm remove kflow"],
+    ["yarn.lock", "yarn", "yarn remove kflow"],
+    ["bun.lockb", "bun", "bun remove kflow"],
+    ["bun.lock", "bun", "bun remove kflow"],
+    ["package-lock.json", "npm", "npm uninstall kflow"],
+  ])("plans removal for %s", (lockfile, packageManager, command) => {
+    const execution = createPackageManagerExecution({
+      filesystem: { exists: (path) => path === `/project/${lockfile}` },
+      process: { run: () => 0 },
+    });
+
+    expect(execution.planRemoval({ cwd: "/project" })).toEqual({
+      packageManager,
+      remove: { command },
+    });
+  });
+
+  it("removes the package before invoking asset removal exactly once", () => {
+    const processCalls: string[] = [];
+    let assetCalls = 0;
+    const execution = createPackageManagerExecution({
+      filesystem: { exists: () => false },
+      process: {
+        run: (command) => {
+          processCalls.push(command);
+          return 0;
+        },
+      },
+    });
+    const plan = execution.planRemoval({ cwd: "/project" });
+
+    expect(execution.executeFullUninstall({
+      cwd: "/project",
+      plan,
+      removeAssets: () => {
+        assetCalls += 1;
+        return { status: "completed" as const };
+      },
+    })).toEqual({
+      status: "completed",
+      completedSteps: ["package-removal", "asset-removal"],
+      assetRemoval: { status: "completed" },
+    });
+    expect(processCalls).toEqual(["npm uninstall kflow"]);
+    expect(assetCalls).toBe(1);
+  });
+
+  it("skips asset removal when package removal fails", () => {
+    let assetCalls = 0;
+    const execution = createPackageManagerExecution({
+      filesystem: { exists: () => false },
+      process: { run: () => 7 },
+    });
+    const plan = execution.planRemoval({ cwd: "/project" });
+
+    expect(execution.executeFullUninstall({
+      cwd: "/project",
+      plan,
+      removeAssets: () => {
+        assetCalls += 1;
+        return { status: "completed" as const };
+      },
+    })).toEqual({
+      status: "package-removal-failed",
+      exitCode: 7,
+      completedSteps: [],
+      retry: { step: "package-removal" },
+    });
+    expect(assetCalls).toBe(0);
+  });
+
+  it("reports partial uninstall without repeating package removal after asset failure", () => {
+    const processCalls: string[] = [];
+    let assetCalls = 0;
+    const execution = createPackageManagerExecution({
+      filesystem: { exists: () => false },
+      process: {
+        run: (command) => {
+          processCalls.push(command);
+          return 0;
+        },
+      },
+    });
+    const plan = execution.planRemoval({ cwd: "/project" });
+
+    expect(execution.executeFullUninstall({
+      cwd: "/project",
+      plan,
+      removeAssets: () => {
+        assetCalls += 1;
+        return { status: "failed" as const, message: "disk full" };
+      },
+    })).toEqual({
+      status: "asset-removal-failed",
+      completedSteps: ["package-removal"],
+      assetRemoval: { status: "failed", message: "disk full" },
+      retry: { step: "asset-removal", packageRemovalRequired: false },
+    });
+    expect(processCalls).toEqual(["npm uninstall kflow"]);
+    expect(assetCalls).toBe(1);
+  });
+
   it.each([
     {
       name: "pnpm precedence",

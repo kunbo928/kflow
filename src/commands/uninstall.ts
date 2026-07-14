@@ -1,8 +1,9 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 import { checkbox, confirm } from "@inquirer/prompts";
 import chalk from "chalk";
+import {
+  executeFullUninstall,
+  planPackageRemoval,
+} from "../package-manager/execution.js";
 import {
   ALL_PLATFORMS,
   inspectProjectOnboarding,
@@ -10,39 +11,9 @@ import {
   removeProjectOnboardingAssets,
   removeProjectOnboardingPlatforms,
   type Platform,
+  type ProjectOnboardingAssetRemoval,
   type ProjectOnboardingRemovalAction,
 } from "../project-onboarding/lifecycle.js";
-
-type PM = "pnpm" | "yarn" | "bun" | "npm";
-
-function detectPackageManager(cwd: string): PM {
-  if (existsSync(join(cwd, "pnpm-lock.yaml"))) return "pnpm";
-  if (existsSync(join(cwd, "yarn.lock"))) return "yarn";
-  if (existsSync(join(cwd, "bun.lockb"))) return "bun";
-  if (existsSync(join(cwd, "bun.lock"))) return "bun";
-  if (existsSync(join(cwd, "package-lock.json"))) return "npm";
-  return "npm";
-}
-
-function removeCommand(pm: PM): string {
-  switch (pm) {
-    case "pnpm": return "pnpm remove kflow";
-    case "yarn": return "yarn remove kflow";
-    case "bun":  return "bun remove kflow";
-    case "npm":  return "npm uninstall kflow";
-  }
-}
-
-function runCommand(plannedCmd: string, envKey: string, cwd: string): number {
-  const override = process.env[envKey];
-  const cmd = override ?? plannedCmd;
-  const result = spawnSync(cmd, [], {
-    cwd,
-    shell: true,
-    stdio: "inherit",
-  });
-  return result.status ?? 1;
-}
 
 function renderRemovalActions(
   actions: ProjectOnboardingRemovalAction[],
@@ -95,37 +66,49 @@ function removePlatforms(cwd: string, platforms: Platform[]): void {
   renderRemovalActions(result.actions, { indent: "  " });
 }
 
-/** Full uninstall: remove everything kflow. */
-async function applyFullUninstall(cwd: string): Promise<void> {
-  const pm = detectPackageManager(cwd);
-  const cmd = removeCommand(pm);
-
-  console.log(chalk.bold("\nkflow uninstall — full removal\n"));
-  console.log(`Package manager : ${pm}`);
-  console.log(`Remove command  : ${cmd}`);
-
-  const exit = runCommand(cmd, "KFLOW_UNINSTALL_REMOVE_CMD", cwd);
-  if (exit !== 0) {
-    console.log(chalk.red("\nPackage removal failed. File deletion skipped."));
-    console.log("Next step: resolve the package manager error and re-run kflow uninstall --apply.");
-    process.exit(exit);
-  }
-
-  const removal = removeProjectOnboardingAssets({ cwd });
-  if (removal.status === "failed") {
-    console.log("");
-    console.log(chalk.red("Package removal succeeded, but file deletion failed."));
-    console.log("Partial uninstall: some kflow files remain.");
-    console.log(`Error: ${removal.message}`);
-    console.log("Next step: manually remove .kflow, .agents, and kflow entry files, or re-run kflow uninstall --apply.");
-    process.exit(1);
-  }
+function renderCompletedAssetRemoval(removal: Extract<
+  ProjectOnboardingAssetRemoval,
+  { status: "completed" }
+>): void {
   if (removal.projectKnowledgeRemoved) {
     console.log(`${chalk.green("✓")} Removed: .kflow (project knowledge)`);
   }
   renderRemovalActions(removal.actions.filter((action) =>
     action.kind.startsWith("entry-file") || action.kind === "parent-directory-preserved"
   ), { includeSkills: false });
+}
+
+/** Full uninstall: remove everything kflow. */
+async function applyFullUninstall(cwd: string): Promise<void> {
+  const plan = planPackageRemoval({ cwd });
+
+  console.log(chalk.bold("\nkflow uninstall — full removal\n"));
+  console.log(`Package manager : ${plan.packageManager}`);
+  console.log(`Remove command  : ${plan.remove.command}`);
+
+  const result = executeFullUninstall({
+    cwd,
+    plan,
+    removeAssets: () => removeProjectOnboardingAssets({ cwd }),
+  });
+  if (result.status === "package-removal-failed") {
+    console.log(chalk.red("\nPackage removal failed. File deletion skipped."));
+    console.log("Next step: resolve the package manager error and re-run kflow uninstall --apply.");
+    process.exit(result.exitCode);
+  }
+
+  if (result.status === "asset-removal-failed") {
+    console.log("");
+    console.log(chalk.red("Package removal succeeded, but file deletion failed."));
+    console.log("Partial uninstall: some kflow files remain.");
+    console.log(`Error: ${result.assetRemoval.message}`);
+    if (!result.retry.packageRemovalRequired) {
+      console.log("Next step: package removal already succeeded; manually remove .kflow, .agents, and kflow entry files without re-running package removal.");
+    }
+    process.exit(1);
+  }
+  const removal = result.assetRemoval;
+  renderCompletedAssetRemoval(removal);
 
   console.log(chalk.green("\nkflow uninstall complete."));
 }
@@ -191,9 +174,9 @@ export async function run(argv: string[]): Promise<void> {
     } else {
       console.log(`Cannot plan asset removal: ${plan.message}`);
     }
-    const pm = detectPackageManager(cwd);
-    console.log(`Package manager : ${pm}`);
-    console.log(`Remove command  : ${removeCommand(pm)}`);
+    const packagePlan = planPackageRemoval({ cwd });
+    console.log(`Package manager : ${packagePlan.packageManager}`);
+    console.log(`Remove command  : ${packagePlan.remove.command}`);
     console.log("");
     console.log("To apply: kflow uninstall --apply");
     return;

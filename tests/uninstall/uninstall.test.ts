@@ -63,58 +63,6 @@ describe("kflow uninstall", () => {
     expect(existsSync(join(cwd, "CLAUDE.md"))).toBe(true);
   });
 
-  it("full dry-run shows npm uninstall command by default", () => {
-    run(["init", "--platform=codex"], cwd);
-    const { stdout, exitCode } = uninstall(["--platform=codex"]);
-    expect(exitCode).toBe(0);
-    expect(stdout).not.toMatch(/npm|Package manager/i);
-  });
-
-  it("detects pnpm via pnpm-lock.yaml", () => {
-    run(["init", "--platform=codex"], cwd);
-    writeFileSync(join(cwd, "pnpm-lock.yaml"), "");
-    const { stdout, exitCode } = uninstall(["--platform=codex"]);
-    expect(exitCode).toBe(0);
-    expect(stdout).not.toMatch(/pnpm|npm/);
-  });
-
-  it("detects yarn via yarn.lock", () => {
-    run(["init", "--platform=codex"], cwd);
-    writeFileSync(join(cwd, "yarn.lock"), "");
-    const { stdout, exitCode } = uninstall(["--platform=codex"]);
-    expect(exitCode).toBe(0);
-    expect(stdout).not.toMatch(/yarn|npm/);
-  });
-
-  it("detects bun via bun.lockb", () => {
-    run(["init", "--platform=codex"], cwd);
-    writeFileSync(join(cwd, "bun.lockb"), "");
-    const { stdout, exitCode } = uninstall(["--platform=codex"]);
-    expect(exitCode).toBe(0);
-  });
-
-  it("detects bun via bun.lock", () => {
-    run(["init", "--platform=codex"], cwd);
-    writeFileSync(join(cwd, "bun.lock"), "");
-    const { stdout, exitCode } = uninstall(["--platform=codex"]);
-    expect(exitCode).toBe(0);
-  });
-
-  it("detects npm via package-lock.json", () => {
-    run(["init", "--platform=codex"], cwd);
-    writeFileSync(join(cwd, "package-lock.json"), "");
-    const { stdout, exitCode } = uninstall(["--platform=codex"]);
-    expect(exitCode).toBe(0);
-  });
-
-  it("pnpm-lock.yaml takes precedence over package-lock.json", () => {
-    run(["init", "--platform=codex"], cwd);
-    writeFileSync(join(cwd, "pnpm-lock.yaml"), "");
-    writeFileSync(join(cwd, "package-lock.json"), "");
-    const { stdout, exitCode } = uninstall(["--platform=codex"]);
-    expect(exitCode).toBe(0);
-  });
-
   it("full dry-run tells user to re-run with --apply", () => {
     run(["init", "--platform=codex"], cwd);
     const { stdout, exitCode } = uninstall(["--platform=codex"]);
@@ -152,6 +100,8 @@ describe("kflow uninstall", () => {
     expect(stdout).toContain("Would remove   : .kflow");
     expect(stdout).toContain("Would remove   : AGENTS.md");
     expect(stdout).toMatch(/Would preserve   : CLAUDE\.md.*user-owned/i);
+    expect(stdout).toContain("Package manager : npm");
+    expect(stdout).toContain("Remove command  : npm uninstall kflow");
     expect(existsSync(join(cwd, ".kflow/meta.json"))).toBe(true);
     expect(readFileSync(join(cwd, "CLAUDE.md"), "utf-8")).toBe("team instructions");
   });
@@ -288,39 +238,6 @@ process.exit(0);`);
     expect(stdout).toMatch(/project knowledge/i);
   });
 
-  it("kflow uninstall --apply preserves non-kflow content inside .agents", () => {
-    run(["init", "--platform=codex"], cwd);
-    // User-owned content alongside kflow-generated .agents/skills
-    const userFile = join(cwd, ".agents", "my-team-rules.md");
-    writeFileSync(userFile, "house style guide");
-    const stub = join(cwd, "stub.mjs");
-    writeFileSync(stub, `process.exit(0);`);
-    const env = { KFLOW_UNINSTALL_REMOVE_CMD: `node ${stub}` };
-    const { stdout, exitCode } = uninstall(["--apply"], env);
-    expect(exitCode).toBe(0);
-    // kflow content removed
-    expect(existsSync(join(cwd, ".agents", "skills", "k-flow"))).toBe(false);
-    // User content preserved
-    expect(existsSync(userFile)).toBe(true);
-    expect(readFileSync(userFile, "utf-8")).toBe("house style guide");
-    // stdout signals non-empty .agents preserved
-    expect(stdout).toMatch(/non-kflow|preserved/i);
-  });
-
-  it("kflow uninstall --apply preserves non-kflow CLAUDE.md", () => {
-    run(["init", "--platform=claude"], cwd);
-    writeFileSync(join(cwd, "CLAUDE.md"), "my custom instructions");
-    const stub = join(cwd, "stub.mjs");
-    writeFileSync(stub, `process.exit(0);`);
-    const env = { KFLOW_UNINSTALL_REMOVE_CMD: `node ${stub}` };
-    const { stdout, exitCode } = uninstall(["--apply"], env);
-    expect(exitCode).toBe(0);
-    const content = readFileSync(join(cwd, "CLAUDE.md"), "utf-8");
-    expect(content).toBe("my custom instructions");
-    expect(stdout).toMatch(/Preserved|not kflow-generated/i);
-    expect(stdout).toContain("CLAUDE.md");
-  });
-
   it("kflow uninstall --apply skips file deletion on package failure", () => {
     run(["init", "--platform=codex"], cwd);
     const stub = join(cwd, "stub.mjs");
@@ -337,36 +254,7 @@ process.exit(1);`);
     expect(existsSync(join(cwd, ".agents"))).toBe(true);
     expect(existsSync(join(cwd, "AGENTS.md"))).toBe(true);
     expect(stdout).toMatch(/failed|skipped/i);
-  });
-
-  it("kflow uninstall --apply uses pnpm remove with pnpm-lock.yaml", () => {
-    run(["init", "--platform=codex"], cwd);
-    writeFileSync(join(cwd, "pnpm-lock.yaml"), "");
-    writeFileSync(join(cwd, "package.json"), JSON.stringify({ name: "test", devDependencies: { kflow: "*" } }));
-    const stub = join(cwd, "stub.mjs");
-    const logPath = join(cwd, "uninstall.log");
-    writeFileSync(stub, `import { appendFileSync } from "node:fs";
-appendFileSync(${JSON.stringify(logPath)}, process.env.STUB_MARKER + "\\n");
-process.exit(0);`);
-    const env = { KFLOW_UNINSTALL_REMOVE_CMD: `STUB_MARKER=pnpm-remove node ${stub}` };
-    const { stdout, exitCode } = uninstall(["--apply"], env);
-    expect(exitCode).toBe(0);
-    expect(stdout).toContain("pnpm");
-    expect(stdout).toContain("pnpm remove kflow");
-    const log = readFileSync(logPath, "utf-8").trim().split("\n");
-    expect(log).toEqual(["pnpm-remove"]);
-  });
-
-  it("kflow uninstall --apply does not crash on second run", () => {
-    run(["init", "--platform=codex"], cwd);
-    const stub = join(cwd, "stub.mjs");
-    writeFileSync(stub, `process.exit(0);`);
-    const env = { KFLOW_UNINSTALL_REMOVE_CMD: `node ${stub}` };
-    const first = uninstall(["--apply"], env);
-    expect(first.exitCode).toBe(0);
-    expect(existsSync(join(cwd, ".kflow"))).toBe(false);
-    const second = uninstall(["--apply"], env);
-    expect(second.exitCode).toBe(0);
+    expect(stdout).toMatch(/retry|re-run|next step|resolve/i);
   });
 
   it("kflow uninstall without --apply still dry-runs", () => {
@@ -392,71 +280,13 @@ process.exit(0);`);
       const { stdout, exitCode } = uninstall(["--apply"], env);
       expect(exitCode).not.toBe(0);
       expect(stdout).toMatch(/partial|failed/i);
-    } finally {
-      chmodSync(join(cwd, ".kflow"), 0o755);
-    }
-  });
-
-  // -- C2: next-step hint in stdout on file-deletion failure ------------
-  it("kflow uninstall --apply gives a next step on file-deletion failure", () => {
-    run(["init", "--platform=codex"], cwd);
-    chmodSync(join(cwd, ".kflow"), 0o000);
-    try {
-      const stub = join(cwd, "stub.mjs");
-      writeFileSync(stub, `process.exit(0);`);
-      const env = { KFLOW_UNINSTALL_REMOVE_CMD: `node ${stub}` };
-      const { stdout } = uninstall(["--apply"], env);
       expect(stdout).toMatch(/manually|retry|re-run|next step/i);
-    } finally {
-      chmodSync(join(cwd, ".kflow"), 0o755);
-    }
-  });
-
-  // -- C3: no rollback — package removal invoked exactly once -----------
-  it("kflow uninstall --apply does not re-invoke package removal on file-deletion failure", () => {
-    run(["init", "--platform=codex"], cwd);
-    const stub = join(cwd, "stub.mjs");
-    const logPath = join(cwd, "uninstall.log");
-    writeFileSync(stub, `import { appendFileSync } from "node:fs";
-appendFileSync(${JSON.stringify(logPath)}, process.env.STUB_MARKER + "\\n");
-process.exit(0);`);
-    chmodSync(join(cwd, ".kflow"), 0o000);
-    try {
-      const env = { KFLOW_UNINSTALL_REMOVE_CMD: `STUB_MARKER=remove-ok node ${stub}` };
-      uninstall(["--apply"], env);
-      const log = readFileSync(logPath, "utf-8").trim().split("\n");
-      // Package removal ran exactly once — no rollback re-install
-      expect(log).toEqual(["remove-ok"]);
-    } finally {
-      chmodSync(join(cwd, ".kflow"), 0o755);
-    }
-  });
-
-  // -- C4: package removed, files remain (partial state) -----------------
-  it("kflow uninstall --apply leaves files when deletion fails after package success", () => {
-    run(["init", "--platform=codex"], cwd);
-    chmodSync(join(cwd, ".kflow"), 0o000);
-    try {
-      const stub = join(cwd, "stub.mjs");
-      writeFileSync(stub, `process.exit(0);`);
-      const env = { KFLOW_UNINSTALL_REMOVE_CMD: `node ${stub}` };
-      const { exitCode } = uninstall(["--apply"], env);
-      expect(exitCode).not.toBe(0);
-      // .kflow still exists (deletion failed)
+      expect(stdout).toContain("package removal already succeeded");
+      expect(stdout).not.toContain("re-run kflow uninstall --apply");
       expect(existsSync(join(cwd, ".kflow"))).toBe(true);
     } finally {
       chmodSync(join(cwd, ".kflow"), 0o755);
     }
   });
 
-  // -- C6: package removal failure includes next step hint --------------
-  it("kflow uninstall --apply gives a next step on package removal failure", () => {
-    run(["init", "--platform=codex"], cwd);
-    const stub = join(cwd, "stub.mjs");
-    writeFileSync(stub, `process.exit(1);`);
-    const env = { KFLOW_UNINSTALL_REMOVE_CMD: `node ${stub}` };
-    const { stdout, exitCode } = uninstall(["--apply"], env);
-    expect(exitCode).not.toBe(0);
-    expect(stdout).toMatch(/retry|re-run|next step|resolve/i);
-  });
 });

@@ -18,13 +18,18 @@ export interface ProjectDocumentDiagnostic {
   message: string;
 }
 
-export interface ProjectDocumentFacts {
-  kind: ProjectDocumentKind;
-  data?: unknown;
+interface ProjectDocumentFactDetails {
   body: string;
   fields: string[];
   diagnostics: ProjectDocumentDiagnostic[];
 }
+
+export type ProjectDocumentFacts = ProjectDocumentFactDetails & (
+  | { kind: "mapping"; data: Record<string, unknown> }
+  | { kind: "array"; data: unknown[] }
+  | { kind: "scalar"; data: unknown }
+  | { kind: "missing" | "unterminated" | "empty" | "malformed"; data?: undefined }
+);
 
 export interface DiscoveredProjectDocument {
   absolutePath: string;
@@ -32,7 +37,7 @@ export interface DiscoveredProjectDocument {
   mode: ProjectDocumentMode;
 }
 
-export interface LoadedProjectDocument extends DiscoveredProjectDocument, ProjectDocumentFacts {}
+export type LoadedProjectDocument = DiscoveredProjectDocument & ProjectDocumentFacts;
 
 const DOCUMENT_PATTERNS = ["**/*.md", "**/*.yaml", "**/*.yml"];
 const IGNORED_DIRECTORIES = ["**/node_modules/**", "**/dist/**", "**/.git/**"];
@@ -105,7 +110,8 @@ function parseYamlFacts(text: string, body: string): ProjectDocumentFacts {
   if (data === null || data === undefined) data = {};
   if (Array.isArray(data)) return { kind: "array", data, body, fields: [], diagnostics: [] };
   if (typeof data === "object") {
-    return { kind: "mapping", data, body, fields: Object.keys(data as Record<string, unknown>), diagnostics: [] };
+    const mapping = data as Record<string, unknown>;
+    return { kind: "mapping", data: mapping, body, fields: Object.keys(mapping), diagnostics: [] };
   }
   return { kind: "scalar", data, body, fields: [], diagnostics: [] };
 }

@@ -1,7 +1,10 @@
-import { readFileSync, existsSync, statSync } from "node:fs";
-import { relative, resolve } from "node:path";
-import { parse as parseYaml } from "yaml";
-import fg from "fast-glob";
+import { existsSync, statSync } from "node:fs";
+import { resolve } from "node:path";
+import {
+  discoverProjectDocuments,
+  loadProjectDocument,
+  type LoadedProjectDocument,
+} from "../project-document/index.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -9,7 +12,7 @@ import fg from "fast-glob";
 
 interface Doc {
   file: string;
-  meta: Record<string, unknown>;
+  meta: unknown;
   body: string;
 }
 
@@ -19,63 +22,18 @@ interface Filter {
   operator: "exact" | "contains";
 }
 
-// ---------------------------------------------------------------------------
-// Frontmatter parsing
-// ---------------------------------------------------------------------------
-
-function parseFrontmatter(text: string): { meta: Record<string, unknown>; body: string } {
-  if (!text.startsWith("---")) return { meta: {}, body: text };
-
-  const end = text.indexOf("\n---", 3);
-  if (end === -1) return { meta: {}, body: text };
-
-  const fmText = text.slice(3, end).trim();
-  const body = text.slice(end + 4).trim();
-
-  let meta: Record<string, unknown> = {};
-  try {
-    meta = (parseYaml(fmText) as Record<string, unknown>) ?? {};
-  } catch {
-    // Malformed YAML — return empty meta
-  }
-
-  return { meta, body };
-}
-
-// ---------------------------------------------------------------------------
-// Document loading (recursive .md glob)
-// ---------------------------------------------------------------------------
-
-const IGNORE_PATTERNS = ["**/node_modules/**", "**/dist/**", "**/.git/**"];
-
-function walkMdFiles(root: string): string[] {
-  return fg.sync("**/*.md", {
-    cwd: root,
-    absolute: true,
-    onlyFiles: true,
-    dot: true,
-    ignore: IGNORE_PATTERNS,
-  }).sort();
-}
-
 function loadDocuments(dir: string): Doc[] {
-  const root = resolve(dir);
-  const files = walkMdFiles(root);
-  const result: Doc[] = [];
-  for (const fullPath of files) {
-    try {
-      const text = readFileSync(fullPath, "utf-8");
-      const { meta, body } = parseFrontmatter(text);
-      result.push({
-        file: relative(root, fullPath),
-        meta,
-        body,
-      });
-    } catch {
-      // skip unreadable files
-    }
-  }
-  return result;
+  return discoverProjectDocuments(dir)
+    .map(loadProjectDocument)
+    .filter((document) => !document.diagnostics.some((diagnostic) => diagnostic.code === "read-error"))
+    .map(toSearchDocument);
+}
+
+function toSearchDocument(document: LoadedProjectDocument): Doc {
+  const meta = document.kind === "mapping" || document.kind === "scalar" || document.kind === "array"
+    ? document.data
+    : {};
+  return { file: document.relativePath, meta, body: document.body };
 }
 
 // ---------------------------------------------------------------------------
@@ -113,8 +71,8 @@ function parseFilter(raw: string): Filter {
   };
 }
 
-function filterMatches(filter: Filter, meta: Record<string, unknown>): boolean {
-  const fieldVal = meta[filter.key];
+function filterMatches(filter: Filter, meta: unknown): boolean {
+  const fieldVal = metadataField(meta, filter.key);
   if (fieldVal === undefined || fieldVal === null) return false;
 
   if (filter.operator === "exact") {
@@ -148,7 +106,7 @@ function docMatches(doc: Doc, filters: Filter[], query: string | null): boolean 
     const haystack =
       doc.body.toLowerCase() +
       " " +
-      Object.values(doc.meta)
+      Object.values(Object(doc.meta))
         .map((v) => String(v))
         .join(" ")
         .toLowerCase();
@@ -163,7 +121,7 @@ function docMatches(doc: Doc, filters: Filter[], query: string | null): boolean 
 // ---------------------------------------------------------------------------
 
 function sortKey(doc: Doc, field: string): [number, string] {
-  const val = doc.meta[field];
+  const val = metadataField(doc.meta, field);
   if (val === undefined || val === null) return [1, ""];
   if (val instanceof Date) return [0, val.toISOString()];
   return [0, String(val)];
@@ -171,11 +129,11 @@ function sortKey(doc: Doc, field: string): [number, string] {
 
 function sortResults(results: Doc[], sortBy: string, order: "asc" | "desc"): Doc[] {
   const present = results.filter((d) => {
-    const v = d.meta[sortBy];
+    const v = metadataField(d.meta, sortBy);
     return v !== undefined && v !== null;
   });
   const missing = results.filter((d) => {
-    const v = d.meta[sortBy];
+    const v = metadataField(d.meta, sortBy);
     return v === undefined || v === null;
   });
   present.sort((a, b) => {
@@ -192,10 +150,10 @@ function sortResults(results: Doc[], sortBy: string, order: "asc" | "desc"): Doc
 // Output
 // ---------------------------------------------------------------------------
 
-function metaSummary(meta: Record<string, unknown>): string {
+function metaSummary(meta: unknown): string {
   const skip = new Set(["slug"]);
   const parts: string[] = [];
-  for (const [k, v] of Object.entries(meta)) {
+  for (const [k, v] of Object.entries(Object(meta))) {
     if (skip.has(k)) continue;
     if (Array.isArray(v)) {
       parts.push(`${k}=[${v.map(String).join(", ")}]`);
@@ -204,6 +162,11 @@ function metaSummary(meta: Record<string, unknown>): string {
     }
   }
   return parts.join("  ");
+}
+
+function metadataField(meta: unknown, field: string): unknown {
+  if (meta === null || meta === undefined) return undefined;
+  return (Object(meta) as Record<string, unknown>)[field];
 }
 
 function formatSummary(doc: Doc): string {

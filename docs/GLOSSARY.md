@@ -82,7 +82,8 @@ sentence of definition followed by where it lives in the code.
 - **`kflow doctor`** — Check kflow installation health (`src/commands/doctor.ts`).
 - **`kflow upgrade`** — Plan or apply a kflow package version upgrade
   (`src/commands/upgrade.ts`).
-- **`kflow search`** — Search YAML-frontmatter `.md` files (`src/commands/search.ts`).
+- **`kflow search`** — Search eligible Markdown and YAML-only Project Documents
+  (`src/commands/search.ts`).
 - **`kflow validate`** — Validate YAML frontmatter in `.md` or `.yaml` files
   (`src/commands/validate.ts`).
 

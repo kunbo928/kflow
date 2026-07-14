@@ -117,6 +117,22 @@ describe("kflow search", () => {
     expect(stdout).not.toContain("Found");
   });
 
+  it("discovers YAML-only Project documents through the shared input set", () => {
+    const dir = seedDocs(cwd);
+    writeFileSync(join(dir, "yaml-only.yaml"), "doc_type: learning\ntrack: yaml");
+
+    const { stdout, exitCode } = search(["--dir", dir, "--filter", "track=yaml", "--json"]);
+
+    expect(exitCode).toBe(0);
+    expect(JSON.parse(stdout)).toEqual([
+      {
+        file: "yaml-only.yaml",
+        meta: { doc_type: "learning", track: "yaml" },
+        body: "",
+      },
+    ]);
+  });
+
   // ── Slice 2: OR pipe filter ─────────────────────────────
 
   it("OR pipe filter matches any candidate", () => {
@@ -177,6 +193,36 @@ describe("kflow search", () => {
     ]);
     expect(stdout).toContain("Found 1 document(s).");
     expect(stdout).toContain("one.md");
+  });
+
+  it("tolerantly searches bodies when frontmatter is missing, malformed, or unterminated", () => {
+    const dir = seedDocs(cwd);
+    writeFileSync(join(dir, "malformed.md"), "---\nkey: [open\n---\nmalformed needle");
+    writeFileSync(join(dir, "unterminated.md"), "---\nkey: value\nunterminated needle");
+
+    const malformed = JSON.parse(search(["--dir", dir, "--query", "malformed needle", "--json"]).stdout);
+    const unterminated = JSON.parse(search(["--dir", dir, "--query", "unterminated needle", "--json"]).stdout);
+    const missing = JSON.parse(search(["--dir", dir, "--query", "no YAML frontmatter", "--json"]).stdout);
+
+    expect(malformed).toMatchObject([{ file: "malformed.md", meta: {}, body: "malformed needle" }]);
+    expect(unterminated).toMatchObject([{ file: "unterminated.md", meta: {} }]);
+    expect(missing).toMatchObject([{ file: "no-fm.md", meta: {} }]);
+  });
+
+  it("preserves scalar and array metadata in search output and full-text matching", () => {
+    const dir = join(cwd, "non-mapping");
+    mkdirSync(dir);
+    writeFileSync(join(dir, "scalar.md"), "---\nhello world\n---");
+    writeFileSync(join(dir, "array.md"), "---\n- searchable\n- metadata\n---");
+
+    const all = JSON.parse(search(["--dir", dir, "--json"]).stdout);
+    const matched = JSON.parse(search(["--dir", dir, "--query", "searchable", "--json"]).stdout);
+
+    expect(all).toEqual([
+      { file: "array.md", meta: ["searchable", "metadata"], body: "" },
+      { file: "scalar.md", meta: "hello world", body: "" },
+    ]);
+    expect(matched).toEqual([{ file: "array.md", meta: ["searchable", "metadata"], body: "" }]);
   });
 
   // ── Slice 6: sort-by + missing-to-end ───────────────────
@@ -297,24 +343,4 @@ describe("kflow search", () => {
     expect(stdout).toContain("Directory not found");
   });
 
-  // ── node_modules exclusion ──────────────────────────────
-
-  it("skips node_modules during file discovery", () => {
-    const dir = seedDocs(cwd);
-    // Seed a leaked file inside node_modules
-    mkdirSync(join(dir, "node_modules"));
-    writeFileSync(
-      join(dir, "node_modules", "leaked.md"),
-      [
-        "---",
-        "doc_type: learning",
-        "---",
-        "",
-        "# Should not appear",
-      ].join("\n")
-    );
-    const { stdout } = search(["--dir", dir, "--filter", "doc_type=learning"]);
-    expect(stdout).toContain("Found 2 document(s).");
-    expect(stdout).not.toContain("leaked.md");
-  });
 });

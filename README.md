@@ -1,3 +1,5 @@
-  # Claude Code Platform Plugin
+# Codex Platform Plugin
 
-Claude Code integration files for kflow. This directory contains the packaging and configuration needed to install kflow into the Claude Code AI coding platform.
+Codex integration files for kflow. This directory contains the packaging and configuration needed to install kflow into the Codex AI coding platform.
+
+Codex is the **default platform** for `kflow init`.

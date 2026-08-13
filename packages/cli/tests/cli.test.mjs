@@ -74,7 +74,7 @@ test('init --yes installs every detected Agent without prompting', () => {
   assert.deepEqual(initialized.tools, ['codex', 'claude']);
 });
 
-test('CLI executes when launched through a global-style symlink', () => {
+test('CLI executes when launched through a global-style symlink', { skip: process.platform === 'win32' ? 'Windows does not execute extensionless symlinks like POSIX' : false }, () => {
   const cwd = tempProject();
   const binDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kflow-bin-'));
   const linkedCli = path.join(binDir, 'kflow');
@@ -221,7 +221,7 @@ test('Skill-originated CLI calls append a redacted invocation record', () => {
   assert.equal(records[0].target, '.kflow/works/feat-audit-export');
   assert.match(records[0].at, /^\d{4}-\d{2}-\d{2}T/);
   assert.doesNotMatch(JSON.stringify(records[0]), /sensitive summary/);
-  assert.equal(fs.statSync(log).mode & 0o777, 0o600);
+  if (process.platform !== 'win32') assert.equal(fs.statSync(log).mode & 0o777, 0o600);
 });
 
 test('Skill invocation records are bounded to the latest 200 entries', () => {

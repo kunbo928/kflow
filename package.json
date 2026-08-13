@@ -1,6 +1,6 @@
 {
   "name": "@kunbo0928/k-flow",
-  "version": "1.1.1",
+  "version": "2.0.0",
   "description": "Platform-neutral engineering Skills and deterministic tooling for AI coding agents.",
   "private": false,
   "type": "module",

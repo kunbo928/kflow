@@ -122,7 +122,7 @@ kflow document validate --file docs/adr/001.md --require status --skill k-roadma
 - `status` 查看当前 Work 状态。
 - `work` 创建并校验统一的 Spec 与活动状态。
 - `document` 查询或校验项目已有文档，不创建平行文档系统。
-- Skill 调用必须带 `--skill`。CLI 在 `.kflow/cli-invocations.jsonl` 保留最近 200 条脱敏记录，只写时间、Skill、命令、结果和关联路径，不写摘要、查询文本或其他自由文本参数；普通任务不调用 CLI 时仍然零产物。
+- Skill 调用必须带 `--skill`，CLI 用它校验调用归属，不生成调用日志。
 
 ## 项目中会增加什么
 
@@ -132,8 +132,7 @@ kflow document validate --file docs/adr/001.md --require status --skill k-roadma
 ├── project-map/      # 渐进式项目全貌导航
 ├── works/            # 统一的 roadmap、任务与探索 Work
 ├── attention.md      # 几乎每次任务都必须知道的少量事实
-├── lessons/          # 尚未进入项目正式归宿的经验
-└── cli-invocations.jsonl # Skill 首次调用 CLI 时懒创建，最多 200 条
+└── lessons/          # 尚未进入项目正式归宿的经验
 ```
 
 稳定事实仍进入项目已有的代码、测试、README、产品文档、ADR 或架构文档。旧版 `.kflow` 内容不会被自动删除或批量迁移。

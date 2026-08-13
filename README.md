@@ -110,7 +110,7 @@ kflow document search --dir docs --query "cache" --skill k-roadmap
 kflow document validate --file docs/adr/001.md --require status --skill k-roadmap
 ```
 
-Skill calls must include `--skill`. The CLI keeps the latest 200 redacted calls in `.kflow/cli-invocations.jsonl`, recording only time, Skill, command, result, and an associated path—not summaries, query text, or other free-form arguments. Ordinary tasks that do not call the CLI still create no artifact.
+Skill calls must include `--skill`; the CLI uses it to validate invocation ownership and does not generate an invocation log.
 
 ## What it adds to a project
 
@@ -120,8 +120,7 @@ Skill calls must include `--skill`. The CLI keeps the latest 200 redacted calls 
 ├── project-map/      # progressively disclosed project navigation
 ├── works/            # unified roadmap, task, and exploration Works
 ├── attention.md      # small set of facts needed for nearly every task
-├── lessons/          # lessons not yet promoted to a stronger owner
-└── cli-invocations.jsonl # created lazily on the first Skill CLI call, capped at 200 entries
+└── lessons/          # lessons not yet promoted to a stronger owner
 ```
 
 Stable facts continue to live in project-owned code, tests, README files, product documents, ADRs, or architecture docs. Legacy `.kflow` data is never deleted or bulk-migrated automatically.

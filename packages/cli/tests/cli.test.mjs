@@ -207,37 +207,11 @@ test('Work 目录名必须与 type 一致', () => {
   assert.match(validation.errors.join('\n'), /目录名必须与 type 一致/);
 });
 
-test('Skill-originated CLI calls append a redacted invocation record', () => {
-  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
-  const log = path.join(cwd, '.kflow/cli-invocations.jsonl');
-  assert.equal(fs.existsSync(log), false);
-  const created = run(cwd, ['work', 'create', 'feat', 'audit-export', '--summary', 'sensitive summary', '--skill', 'k-feat']);
-  assert.equal(created.ok, true);
-  const records = fs.readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
-  assert.equal(records.length, 1);
-  assert.equal(records[0].skill, 'k-feat');
-  assert.equal(records[0].command, 'work create');
-  assert.equal(records[0].ok, true);
-  assert.equal(records[0].target, '.kflow/works/feat-audit-export');
-  assert.match(records[0].at, /^\d{4}-\d{2}-\d{2}T/);
-  assert.doesNotMatch(JSON.stringify(records[0]), /sensitive summary/);
-  if (process.platform !== 'win32') assert.equal(fs.statSync(log).mode & 0o777, 0o600);
-});
-
-test('Skill invocation records are bounded to the latest 200 entries', () => {
-  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
-  for (let index = 0; index < 205; index += 1) run(cwd, ['status', '--skill', 'k-flow']);
-  const records = fs.readFileSync(path.join(cwd, '.kflow/cli-invocations.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
-  assert.equal(records.length, 200);
-  assert.ok(records.every((record) => record.skill === 'k-flow' && record.command === 'status'));
-});
-
-test('invalid Skill attribution fails without executing or writing a record', () => {
+test('invalid Skill attribution fails without executing', () => {
   const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
   const result = spawnSync(process.execPath, [cli, 'status', '--skill', 'not-a-skill', '--json'], { cwd, encoding: 'utf8' });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Invalid --skill/);
-  assert.equal(fs.existsSync(path.join(cwd, '.kflow/cli-invocations.jsonl')), false);
 });
 
 test('init installs referenced Skill assets and doctor reports missing assets', () => {

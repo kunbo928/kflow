@@ -3,7 +3,6 @@ import path from 'node:path';
 import { createWork, doctor, initProject, showWork, status, validateMap, validateOneWork } from './commands.js';
 import type { CommandResult, WorkType } from './types.js';
 import { searchDocuments, validateDocuments } from './documents.js';
-import { recordInvocation } from './invocations.js';
 import { skillNames } from './skill-manifest.js';
 import { agentTools, selectTools } from './agent-integrations.js';
 import { agentChoices, filterChoices, initiallySelectedIds, selectAgentsInteractively } from './agent-selection.js';
@@ -59,6 +58,5 @@ export async function main(args: string[]): Promise<void> {
   else if (group === 'document' && action === 'search') { const dir = option(args, '--dir'); if (!dir) usage(); const order = option(args, '--order'); if (order && !['asc', 'desc'].includes(order)) throw new Error('Invalid --order: expected asc or desc'); result = searchDocuments(cwd, { dir, filters: options(args, '--filter'), query: option(args, '--query'), sortBy: option(args, '--sort-by'), order, full: has(args, '--full') }); }
   else if (group === 'document' && action === 'validate') { const file = option(args, '--file'), dir = option(args, '--dir'); if (Boolean(file) === Boolean(dir)) throw new Error('Exactly one of --file or --dir is required'); result = validateDocuments(cwd, { file, dir, required: options(args, '--require'), yamlOnly: has(args, '--yaml-only') }); }
   else usage();
-  if (skill) recordInvocation(cwd, skill, result);
   print(result, json);
 }

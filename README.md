@@ -32,7 +32,7 @@ Low-risk, well-defined work stays direct. Checkpoints and recovery records appea
 Node.js 20 or newer is required. Install the CLI globally, then initialize your project:
 
 ```bash
-npm install -g @kunbo/k-flow@latest
+npm install -g @kunbo0928/k-flow@latest
 cd your-project
 kflow init
 ```

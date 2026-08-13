@@ -36,7 +36,7 @@ kflow 为不同类型的工作提供不同闭环：
 需要 Node.js 20 或更高版本。全局安装 CLI，然后在你的项目根目录初始化：
 
 ```bash
-npm install -g @kunbo/k-flow@latest
+npm install -g @kunbo0928/k-flow@latest
 cd your-project
 kflow init
 ```

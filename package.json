@@ -1,5 +1,5 @@
 {
-  "name": "k-flow",
+  "name": "@kunbo/k-flow",
   "version": "1.0.0",
   "description": "Platform-neutral engineering Skills and deterministic tooling for AI coding agents.",
   "private": false,

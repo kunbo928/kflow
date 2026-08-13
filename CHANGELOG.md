@@ -1,5 +1,11 @@
 # k-flow
 
+## 2.0.0
+
+### Major Changes
+
+- 0ded357: Replace cursor-based workflows with a progressive Project Map and unified Work directories, expand the public topology to twelve independent Skills, and add deterministic map/work CLI commands.
+
 ## 1.1.1
 
 ### Patch Changes

@@ -1,0 +1,45 @@
+{
+  "name": "k-flow",
+  "version": "0.1.0",
+  "description": "Platform-neutral engineering Skills and deterministic tooling for AI coding agents.",
+  "private": false,
+  "type": "module",
+  "bin": {
+    "kflow": "./dist/kflow.mjs"
+  },
+  "files": [
+    "dist",
+    "README-zh.md",
+    "skills"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test packages/cli/tests/*.test.mjs",
+    "check": "npm run typecheck && npm test",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "npm run build && changeset publish"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kunbo928/kflow.git"
+  },
+  "homepage": "https://kunbo928.github.io/kflow/",
+  "bugs": {
+    "url": "https://github.com/kunbo928/kflow/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@types/node": "^26.2.0",
+    "tsdown": "^0.22.14",
+    "typescript": "^5.9.3"
+  }
+}

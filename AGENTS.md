@@ -1,23 +1,26 @@
 # AGENTS
 
-kflow 是一个跨平台 AI 编码工作流技能集合，基于 AgentSkills.io 标准。技能在 Claude Code/Cursor/Codex/OpenCode 上均可运行。本文件为 AI 编码 agent 提供工作指引。
+kflow 是一组跨平台工程 Skill，加一个确定性 CLI。Skill 负责语义判断，CLI 负责确定性执行、验证、恢复与上下文压缩；它不接管项目已有事实系统。
 
 ## 项目性质
 
-- 本项目是一个**技能包仓库**，不是应用项目
-- 包含 25 个 `k-*` 技能（AgentSkills.io 标准格式），一个 `browser-bridge` 独立技能
-- 技能由 `k-onboard` 复制到目标项目的 `.kflow/skills/` 下，各平台 AI 通过 `AGENTS.md` 中的路由表按需读取
-- 本仓库是技能的**开发和维护空间**，不是技能的执行环境
+- 本项目是技能包仓库，不是应用项目。
+- 当前交付 8 个 AgentSkills.io Skill：`k-flow`、`k-onboard`、`k-feat`、`k-issue`、`k-refactor`、`k-roadmap`、`k-review`、`k-knowledge`。
+- `kflow init` 将 Skill 安装到目标项目 `.agents/skills/`，再为检测到的 Agent 平台建立链接或副本。
+- 普通任务不创建游标；`.kflow/cursors/` 只保存必要的恢复游标。
 
 ## 工作方式
 
-- 所有 `k-*` 目录是 AgentSkills.io 标准格式（SKILL.md + 周边文件）
-- 修改技能行为 → 改对应 `k-*/SKILL.md`
-- 修改共享参考 → 改 `k-onboard/reference/` 模板
+- 修改 Skill 行为：改对应 `skills/k-*/SKILL.md`。
+- 修改 CLI：改 `packages/cli/src/`，同步 `packages/cli/tests/`。
+- 修改公开行为：同步中英文 README、插件清单、npm 文件清单和 Changeset。
+- 架构与迁移边界以 `docs/kflow-v2-design.md` 为准。
 
 ## 约束
 
-- 技能间不耦合，每个 skill 独立可用
-- 单 md 不超过 300 行
-- 跨技能共享文档走 `k-onboard/reference/` → `.kflow/reference/`
-- 修改技能后检查是否有其他技能需要同步更新表述
+- Skill 相互独立，不读取 sibling Skill 文件，不依赖项目内共享 reference runtime。
+- 单个 Markdown 不超过 300 行。
+- 新项目只默认创建 `.kflow/attention.md`、`.kflow/cursors/`、`.kflow/lessons/`。
+- 稳定事实进入调用方项目已有 canonical owner，不默认创建平行需求、架构或文档系统。
+- Feature 使用目标行为 `red → green`；Issue 使用故障症状 `red → green`；Refactor 使用行为基线 `green → green`。
+- 修改后至少运行 `npm run check`；发布面变化还要运行 `npm pack --dry-run`。

@@ -1,0 +1,38 @@
+name: GitHub Release
+
+on:
+  push:
+    tags:
+      - 'k-flow@*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Extract changelog
+        id: notes
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#k-flow@}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          awk -v ver="$VERSION" '
+            BEGIN { capture = 0 }
+            /^## / {
+              if (capture) exit
+              if ($0 == "## " ver) { capture = 1; next }
+            }
+            capture { print }
+          ' CHANGELOG.md > release_body.md
+          if [ ! -s release_body.md ]; then
+            printf '## Changes\n\nSee CHANGELOG.md for details.\n' > release_body.md
+          fi
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.notes.outputs.version }}
+          body_path: release_body.md

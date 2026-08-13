@@ -7,7 +7,7 @@
 English · [简体中文](README-zh.md)
 
 ![status](https://img.shields.io/badge/status-beta-F59E0B?style=flat-square)
-![skills](https://img.shields.io/badge/skills-8-2F7A5E?style=flat-square)
+![skills](https://img.shields.io/badge/skills-12-2F7A5E?style=flat-square)
 
 </div>
 
@@ -37,7 +37,7 @@ cd your-project
 kflow init
 ```
 
-`init` installs eight Skills under `.agents/skills/` and connects detected Agent platforms. The registry matches K Teach and supports 35 tools, including Codex, Claude Code, Cursor, OpenCode, Gemini CLI, GitHub Copilot, Windsurf, and WorkBuddy.
+`init` installs twelve Skills under `.agents/skills/`, creates the progressive Project Map and Works skeleton, and connects detected Agent platforms.
 
 ```bash
 kflow init --tools codex,claude
@@ -76,9 +76,9 @@ establish signal → make change → verify with the same signal
 deliver code, evidence, remaining risk, and durable knowledge
 ```
 
-Ordinary tasks create no cursor. `.kflow/cursors/` is used only for cross-session recovery, handoff, Roadmap execution, or explicit retention requests.
+Each engineering task owns one `.kflow/works/{type}-{slug}/`: `spec.md` keeps the stable contract and `work.md` keeps active state. The user decides whether completed `work.md` remains.
 
-## The eight Skills
+## The twelve Skills
 
 | Skill | Purpose |
 |---|---|
@@ -88,6 +88,10 @@ Ordinary tasks create no cursor. `.kflow/cursors/` is used only for cross-sessio
 | `k-issue` | reproduce, diagnose, and—when authorized—fix a defect |
 | `k-refactor` | improve internal structure while preserving behavior |
 | `k-roadmap` | coordinate multi-deliverable goals, dependencies, and acceptance |
+| `k-research` | investigate primary evidence without implementation authority |
+| `k-prototype` | use a disposable artifact to answer one decision |
+| `k-architecture` | audit and design module architecture without implementation |
+| `k-reconcile` | reconcile Project Map against code and canonical owners |
 | `k-review` | perform a read-only review of a frozen target |
 | `k-knowledge` | manage attention, lessons, and durable knowledge ownership |
 
@@ -98,9 +102,10 @@ Each Skill is independently usable and follows the open Agent Skills directory f
 ```bash
 kflow doctor
 kflow status
-kflow cursor create k-feat feat-export-csv --summary "Export CSV" --skill k-feat
-kflow cursor show feat-export-csv --skill k-feat --json
-kflow cursor validate .kflow/cursors/feat-export-csv.md --skill k-feat
+kflow work create feat export-csv --summary "Export CSV" --skill k-feat
+kflow work show feat-export-csv --skill k-feat --json
+kflow work validate feat-export-csv --skill k-feat
+kflow map validate --skill k-onboard
 kflow document search --dir docs --query "cache" --skill k-roadmap
 kflow document validate --file docs/adr/001.md --require status --skill k-roadmap
 ```
@@ -110,10 +115,11 @@ Skill calls must include `--skill`. The CLI keeps the latest 200 redacted calls 
 ## What it adds to a project
 
 ```text
-.agents/skills/       # canonical copies of the eight Skills
+.agents/skills/       # canonical copies of the twelve Skills
 .kflow/
+├── project-map/      # progressively disclosed project navigation
+├── works/            # unified roadmap, task, and exploration Works
 ├── attention.md      # small set of facts needed for nearly every task
-├── cursors/          # optional recovery cursors, deleted when complete
 ├── lessons/          # lessons not yet promoted to a stronger owner
 └── cli-invocations.jsonl # created lazily on the first Skill CLI call, capped at 200 entries
 ```

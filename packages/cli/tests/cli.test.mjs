@@ -7,7 +7,7 @@ import test from 'node:test';
 
 const repo = path.resolve(import.meta.dirname, '../../..');
 const cli = path.join(repo, 'dist/kflow.mjs');
-const currentSkills = ['k-flow', 'k-onboard', 'k-feat', 'k-issue', 'k-refactor', 'k-roadmap', 'k-review', 'k-knowledge'];
+const currentSkills = ['k-flow', 'k-onboard', 'k-feat', 'k-issue', 'k-refactor', 'k-roadmap', 'k-review', 'k-knowledge', 'k-research', 'k-prototype', 'k-architecture', 'k-reconcile'];
 const legacyRoots = ['requirements', 'architecture', 'roadmap', 'features', 'issues', 'refactors', 'compound', 'reference'];
 const agentToolIds = ['amazon-q', 'antigravity', 'auggie', 'bob', 'codex', 'claude', 'cline', 'codeartsagent', 'forgecode', 'codebuddy', 'continue', 'costrict', 'crush', 'cursor', 'factory', 'gemini', 'github-copilot', 'hermes', 'iflow', 'junie', 'kilocode', 'kimi', 'kiro', 'lingma', 'vibe', 'oh-my-pi', 'opencode', 'pi', 'qoder', 'qwen', 'roocode', 'trae', 'windsurf', 'zcode', 'workbuddy'];
 
@@ -28,11 +28,12 @@ function run(cwd, args, expect = 0) {
   return JSON.parse(result.stdout);
 }
 
-test('init creates only the minimal project state and installs eight skills', () => {
+test('init creates Project Map and Works state and installs twelve skills', () => {
   const cwd = tempProject(); const first = run(cwd, ['init', '--tools', 'codex,claude']);
   assert.equal(first.ok, true);
   assert.ok(fs.existsSync(path.join(cwd, '.kflow/attention.md')));
-  assert.ok(fs.existsSync(path.join(cwd, '.kflow/cursors/.gitkeep')));
+  assert.ok(fs.existsSync(path.join(cwd, '.kflow/works/.gitkeep')));
+  assert.ok(fs.existsSync(path.join(cwd, '.kflow/project-map/index.md')));
   assert.ok(fs.existsSync(path.join(cwd, '.kflow/lessons/.gitkeep')));
   for (const root of legacyRoots) assert.equal(fs.existsSync(path.join(cwd, '.kflow', root)), false);
   for (const name of currentSkills) {
@@ -97,47 +98,127 @@ test('doctor reports old state as legacy without failing or rewriting it', () =>
   assert.equal(fs.readFileSync(path.join(legacy, 'old-work.md'), 'utf8'), 'historical content\n');
 });
 
-test('optional cursor captures only recovery state and validates', () => {
+test('Work captures stable Spec and active recovery state and validates', () => {
   const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
   assert.equal(run(cwd, ['status']).counts.active, 0);
-  const created = run(cwd, ['cursor', 'create', 'k-feat', 'export-csv', '--summary', '导出 CSV']);
-  const file = path.join(cwd, created.path); const text = fs.readFileSync(file, 'utf8');
-  assert.match(text, /owner: k-feat/);
-  assert.match(text, /status: active/);
+  const created = run(cwd, ['work', 'create', 'feat', 'export-csv', '--summary', '导出 CSV']);
+  const file = path.join(cwd, created.path, 'work.md'); const text = fs.readFileSync(file, 'utf8');
+  assert.match(text, /type: feat/);
+  assert.match(text, /status: proposed/);
   assert.match(text, /git_head: [a-f0-9]{40}/);
   assert.match(text, /dirty_paths:/);
-  assert.match(text, /## 验证信号/);
-  assert.doesNotMatch(text, /stage:|review:|feedback_loop:|## Trace|## Fact Sync/);
+  assert.match(text, /## 验证证据/);
   const completed = text
-    .replace('## 目标\n', '## 目标\n导出选择记录。\n')
-    .replace('## 范围与非目标\n', '## 范围与非目标\n仅 CSV，不含格式。\n')
     .replace('## 当前状态\n', '## 当前状态\n准备建立 red。\n')
     .replace('## 下一步\n', '## 下一步\n添加失败测试。\n')
-    .replace('## 验证信号\n', '## 验证信号\nnpm test -- export-csv。\n')
-    .replace('## 关键决策与证据\n', '## 关键决策与证据\n使用现有导出 seam。\n');
+    .replace('## 验证证据\n', '## 验证证据\nnpm test -- export-csv。\n');
   fs.writeFileSync(file, completed);
-  assert.equal(run(cwd, ['cursor', 'validate', created.path]).ok, true);
-  assert.equal(run(cwd, ['status']).counts.active, 1);
-  const shown = run(cwd, ['cursor', 'show', 'export-csv']);
-  assert.equal(shown.owner, 'k-feat');
-  assert.equal(shown.status, 'active');
+  assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);
+  assert.equal(run(cwd, ['status']).counts.proposed, 1);
+  const shown = run(cwd, ['work', 'show', 'feat-export-csv']);
+  assert.equal(shown.type, 'feat');
+  assert.equal(shown.status, 'proposed');
   assert.equal(shown.next, '添加失败测试。');
-  assert.equal(shown.signal, 'npm test -- export-csv。');
   assert.deepEqual(shown.blockedBy, null);
+});
+
+test('roadmap Work creates a Feat frontier directory', () => {
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
+  const created = run(cwd, ['work', 'create', 'roadmap', 'payment-migration']);
+  assert.ok(fs.existsSync(path.join(cwd, created.path, 'feats')));
+  const spec = path.join(cwd, created.path, 'spec.md');
+  fs.writeFileSync(spec, fs.readFileSync(spec, 'utf8').replace('## Feature 索引\n', '## Feature 索引\n尚未创建 Feature。\n'));
+  assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);
+});
+
+test('Roadmap 校验 Feature 文件名、契约、依赖和环', () => {
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
+  const created = run(cwd, ['work', 'create', 'roadmap', 'checkout']);
+  const feats = path.join(cwd, created.path, 'feats');
+  const roadmapSpec = path.join(cwd, created.path, 'spec.md');
+  fs.writeFileSync(roadmapSpec, fs.readFileSync(roadmapSpec, 'utf8').replace('## Feature 索引\n', '## Feature 索引\n- FEAT-01\n- FEAT-02\n'));
+  fs.writeFileSync(path.join(feats, '01-cart.md'), `---\nid: FEAT-01\nstatus: proposed\ndepends_on: [FEAT-02]\n---\n\n# 购物车\n\n## 目标行为\n\n## 范围与非目标\n\n## 验收场景\n\n## 测试契约\n\n## 关键决策\n\n## 交付结果\n`);
+  fs.writeFileSync(path.join(feats, '02-order.md'), `---\nid: FEAT-02\nstatus: proposed\ndepends_on: [FEAT-01]\n---\n\n# 下单\n\n## 目标行为\n\n## 范围与非目标\n\n## 验收场景\n\n## 测试契约\n\n## 关键决策\n\n## 交付结果\n`);
+  let validation = run(cwd, ['work', 'validate', created.path], 1);
+  assert.match(validation.errors.join('\n'), /Feat 依赖存在环/);
+  fs.writeFileSync(path.join(feats, '02-order.md'), fs.readFileSync(path.join(feats, '02-order.md'), 'utf8').replace('depends_on: [FEAT-01]', 'depends_on: []'));
+  assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);
+  fs.renameSync(path.join(feats, '02-order.md'), path.join(feats, 'order.md'));
+  validation = run(cwd, ['work', 'validate', created.path], 1);
+  assert.match(validation.errors.join('\n'), /Feat 文件名无效/);
+});
+
+test('accepted Roadmap 拒绝空 Feature、非法状态和未完成子项', () => {
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
+  const created = run(cwd, ['work', 'create', 'roadmap', 'acceptance-guards']); const root = path.join(cwd, created.path);
+  for (const name of ['spec.md', 'work.md']) { const file = path.join(root, name); fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('status: proposed', 'status: accepted')); }
+  let spec = fs.readFileSync(path.join(root, 'spec.md'), 'utf8')
+    .replace('## Feature 索引\n', '## Feature 索引\nFEAT-01\n')
+    .replace('### 实现\n', '### 实现\n完成。\n').replace('### 验证\n', '### 验证\n通过。\n').replace('### 审查\n', '### 审查\n通过。\n').replace('### 上下文同步\n', '### 上下文同步\n无需。\n');
+  fs.writeFileSync(path.join(root, 'spec.md'), spec);
+  let validation = run(cwd, ['work', 'validate', created.path], 1);
+  assert.match(validation.errors.join('\n'), /至少需要一个 Feature/);
+  const feat = path.join(root, 'feats/01-one.md');
+  const body = `\n---\n\n# 一\n\n## 目标行为\n\n## 范围与非目标\n\n## 验收场景\n\n## 测试契约\n\n## 关键决策\n\n## 交付结果\n`;
+  fs.writeFileSync(feat, `---\nid: FEAT-01\nstatus: typo\ndepends_on: []${body}`);
+  validation = run(cwd, ['work', 'validate', created.path], 1);
+  assert.match(validation.errors.join('\n'), /status 无效/);
+  fs.writeFileSync(feat, fs.readFileSync(feat, 'utf8').replace('status: typo', 'status: proposed'));
+  validation = run(cwd, ['work', 'validate', created.path], 1);
+  assert.match(validation.errors.join('\n'), /必须全部 accepted/);
+  fs.writeFileSync(feat, fs.readFileSync(feat, 'utf8').replace('status: proposed', 'status: accepted'));
+  validation = run(cwd, ['work', 'validate', created.path], 1);
+  assert.match(validation.errors.join('\n'), /01-one.md 的“目标行为”章节不能为空/);
+  assert.match(validation.errors.join('\n'), /01-one.md“交付结果\/实现”不能为空/);
+});
+
+test('accepted Work 必须保留验证、审查和上下文同步证据', () => {
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
+  const created = run(cwd, ['work', 'create', 'feat', 'accepted-contract']);
+  for (const name of ['spec.md', 'work.md']) {
+    const file = path.join(cwd, created.path, name);
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('status: proposed', 'status: accepted'));
+  }
+  let validation = run(cwd, ['work', 'validate', created.path], 1);
+  assert.match(validation.errors.join('\n'), /spec.md“交付结果\/实现”不能为空/);
+  const work = path.join(cwd, created.path, 'work.md');
+  const filled = fs.readFileSync(work, 'utf8')
+    .replace('## 验证证据\n', '## 验证证据\n目标测试通过。\n')
+    .replace('## 审查\n', '## 审查\nSpec 与 Standards 均通过。\n')
+    .replace('## 上下文同步\n', '## 上下文同步\n无需同步。\n');
+  fs.writeFileSync(work, filled);
+  const spec = path.join(cwd, created.path, 'spec.md');
+  fs.writeFileSync(spec, fs.readFileSync(spec, 'utf8')
+    .replace('### 实现\n', '### 实现\n功能已实现。\n')
+    .replace('### 验证\n', '### 验证\n目标测试通过。\n')
+    .replace('### 审查\n', '### 审查\n双轴通过。\n')
+    .replace('### 上下文同步\n', '### 上下文同步\n无需同步。\n'));
+  assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);
+  fs.rmSync(work);
+  assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);
+});
+
+test('Work 目录名必须与 type 一致', () => {
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
+  const created = run(cwd, ['work', 'create', 'feat', 'rename-check']);
+  const wrong = path.join(cwd, '.kflow/works/issue-rename-check');
+  fs.renameSync(path.join(cwd, created.path), wrong);
+  const validation = run(cwd, ['work', 'validate', '.kflow/works/issue-rename-check'], 1);
+  assert.match(validation.errors.join('\n'), /目录名必须与 type 一致/);
 });
 
 test('Skill-originated CLI calls append a redacted invocation record', () => {
   const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
   const log = path.join(cwd, '.kflow/cli-invocations.jsonl');
   assert.equal(fs.existsSync(log), false);
-  const created = run(cwd, ['cursor', 'create', 'k-feat', 'audit-export', '--summary', 'sensitive summary', '--skill', 'k-feat']);
+  const created = run(cwd, ['work', 'create', 'feat', 'audit-export', '--summary', 'sensitive summary', '--skill', 'k-feat']);
   assert.equal(created.ok, true);
   const records = fs.readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(records.length, 1);
   assert.equal(records[0].skill, 'k-feat');
-  assert.equal(records[0].command, 'cursor create');
+  assert.equal(records[0].command, 'work create');
   assert.equal(records[0].ok, true);
-  assert.equal(records[0].target, '.kflow/cursors/audit-export.md');
+  assert.equal(records[0].target, '.kflow/works/feat-audit-export');
   assert.match(records[0].at, /^\d{4}-\d{2}-\d{2}T/);
   assert.doesNotMatch(JSON.stringify(records[0]), /sensitive summary/);
   assert.equal(fs.statSync(log).mode & 0o777, 0o600);
@@ -172,31 +253,27 @@ test('init installs referenced Skill assets and doctor reports missing assets', 
   assert.ok(fs.existsSync(debug));
 });
 
-test('cursor rejects invalid owners and incomplete recovery contracts', () => {
+test('Work rejects invalid types and blocked Work requires a reason', () => {
   const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
-  const invalidOwner = spawnSync(process.execPath, [cli, 'cursor', 'create', 'k-guide', 'docs', '--json'], { cwd, encoding: 'utf8' });
-  assert.equal(invalidOwner.status, 1); assert.match(invalidOwner.stderr, /Invalid owner/);
-  const created = run(cwd, ['cursor', 'create', 'k-issue', 'cache-regression']);
-  const file = path.join(cwd, created.path);
+  const invalidOwner = spawnSync(process.execPath, [cli, 'work', 'create', 'guide', 'docs', '--json'], { cwd, encoding: 'utf8' });
+  assert.equal(invalidOwner.status, 1); assert.match(invalidOwner.stderr, /Invalid Work type/);
+  const created = run(cwd, ['work', 'create', 'issue', 'cache-regression']);
+  const file = path.join(cwd, created.path, 'work.md');
   let text = fs.readFileSync(file, 'utf8');
-  let validation = run(cwd, ['cursor', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /empty section: 目标/);
   text = text
-    .replace('## 目标\n', '## 目标\n复现缓存回归。\n')
-    .replace('## 范围与非目标\n', '## 范围与非目标\n只诊断缓存模块。\n')
     .replace('## 当前状态\n', '## 当前状态\n等待复现。\n')
     .replace('## 下一步\n', '## 下一步\n运行复现命令。\n')
-    .replace('## 验证信号\n', '## 验证信号\nnpm test -- cache。\n')
-    .replace('## 关键决策与证据\n', '## 关键决策与证据\n尚无。\n')
-    .replace('status: active', 'status: blocked');
+    .replace('## 验证证据\n', '## 验证证据\nnpm test -- cache。\n')
+    .replace('status: proposed', 'status: blocked');
   fs.writeFileSync(file, text);
-  validation = run(cwd, ['cursor', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /blocked cursor requires a non-empty 阻塞 section/);
+  fs.writeFileSync(path.join(cwd, created.path, 'spec.md'), fs.readFileSync(path.join(cwd, created.path, 'spec.md'), 'utf8').replace('status: proposed', 'status: blocked'));
+  let validation = run(cwd, ['work', 'validate', created.path], 1);
+  assert.match(validation.errors.join('\n'), /blocked Work 的“阻塞”章节不能为空/);
   fs.writeFileSync(file, text.replace('## 阻塞\n', '## 阻塞\n缺少测试服务；服务恢复后重试。\n'));
-  assert.equal(run(cwd, ['cursor', 'validate', created.path]).ok, true);
+  assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);
   fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('## 下一步', '## Removed'));
-  validation = run(cwd, ['cursor', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /missing section: 下一步/);
+  validation = run(cwd, ['work', 'validate', created.path], 1);
+  assert.match(validation.errors.join('\n'), /缺少章节：下一步/);
 });
 
 test('document search and validation remain path-neutral utilities', () => {

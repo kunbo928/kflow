@@ -7,7 +7,7 @@
 [English](README.md) · 简体中文
 
 ![status](https://img.shields.io/badge/status-beta-F59E0B?style=flat-square)
-![skills](https://img.shields.io/badge/skills-8-2F7A5E?style=flat-square)
+![skills](https://img.shields.io/badge/skills-12-2F7A5E?style=flat-square)
 
 </div>
 
@@ -41,7 +41,7 @@ cd your-project
 kflow init
 ```
 
-`init` 会把 8 个 Skill 安装到 `.agents/skills/`，并自动连接项目中检测到的 Agent 平台。它支持与 K Teach 一致的 35 个 Agent 工具，包括 Codex、Claude Code、Cursor、OpenCode、Gemini CLI、GitHub Copilot、Windsurf 和 WorkBuddy 等。
+`init` 会把 12 个 Skill 安装到 `.agents/skills/`，建立渐进式 Project Map 与 Works 骨架，并自动连接项目中检测到的 Agent 平台。
 
 显式指定平台或安装全部平台：
 
@@ -84,9 +84,9 @@ k-feat / k-issue / k-refactor / k-roadmap / k-review
 交付代码、验证结果、剩余风险与必要知识
 ```
 
-普通任务不会创建游标。跨会话恢复、交接、大型 Roadmap 或你明确要求留痕时，才使用 `.kflow/cursors/` 保存最小恢复游标。
+每个工程任务使用一个 `.kflow/works/{type}-{slug}/`：`spec.md` 保存稳定契约，`work.md` 保存活动状态；完成后是否保留 `work.md` 由用户决定。
 
-## 8 个 Skill
+## 12 个 Skill
 
 | Skill | 用途 |
 |---|---|
@@ -96,6 +96,10 @@ k-feat / k-issue / k-refactor / k-roadmap / k-review
 | `k-issue` | 复现、诊断并在获得授权后修复问题 |
 | `k-refactor` | 保持行为等价地改进内部结构 |
 | `k-roadmap` | 管理多交付项目标、依赖、决策与整体验收 |
+| `k-research` | 基于一手证据调研，不扩大实现授权 |
+| `k-prototype` | 用可丢弃原型回答一个决策问题 |
+| `k-architecture` | 审计和设计模块架构，不直接实施 |
+| `k-reconcile` | 以代码和事实 owner 为准校准 Project Map |
 | `k-review` | 对明确范围进行只读代码审查 |
 | `k-knowledge` | 管理注意事项、经验和长期事实归宿 |
 
@@ -106,26 +110,28 @@ k-feat / k-issue / k-refactor / k-roadmap / k-review
 ```bash
 kflow doctor
 kflow status
-kflow cursor create k-feat feat-export-csv --summary "导出 CSV" --skill k-feat
-kflow cursor show feat-export-csv --skill k-feat --json
-kflow cursor validate .kflow/cursors/feat-export-csv.md --skill k-feat
+kflow work create feat export-csv --summary "导出 CSV" --skill k-feat
+kflow work show feat-export-csv --skill k-feat --json
+kflow work validate feat-export-csv --skill k-feat
+kflow map validate --skill k-onboard
 kflow document search --dir docs --query "cache" --skill k-roadmap
 kflow document validate --file docs/adr/001.md --require status --skill k-roadmap
 ```
 
 - `doctor` 检查安装、Skill 资产和可恢复状态。
-- `status` 查看当前活动游标数量。
-- `cursor` 只管理必要的跨会话恢复信息。
+- `status` 查看当前 Work 状态。
+- `work` 创建并校验统一的 Spec 与活动状态。
 - `document` 查询或校验项目已有文档，不创建平行文档系统。
 - Skill 调用必须带 `--skill`。CLI 在 `.kflow/cli-invocations.jsonl` 保留最近 200 条脱敏记录，只写时间、Skill、命令、结果和关联路径，不写摘要、查询文本或其他自由文本参数；普通任务不调用 CLI 时仍然零产物。
 
 ## 项目中会增加什么
 
 ```text
-.agents/skills/       # 8 个 Skill 的规范副本
+.agents/skills/       # 12 个 Skill 的规范副本
 .kflow/
+├── project-map/      # 渐进式项目全貌导航
+├── works/            # 统一的 roadmap、任务与探索 Work
 ├── attention.md      # 几乎每次任务都必须知道的少量事实
-├── cursors/          # 可选的恢复游标，完成即删
 ├── lessons/          # 尚未进入项目正式归宿的经验
 └── cli-invocations.jsonl # Skill 首次调用 CLI 时懒创建，最多 200 条
 ```

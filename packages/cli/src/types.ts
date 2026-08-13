@@ -1,9 +1,9 @@
-export type CursorOwner = 'k-feat' | 'k-issue' | 'k-refactor' | 'k-roadmap';
-export type CursorStatus = 'active' | 'blocked';
+export type WorkType = 'roadmap' | 'feat' | 'issue' | 'refactor' | 'research' | 'prototype' | 'architecture';
+export type WorkStatus = 'proposed' | 'active' | 'blocked' | 'accepted' | 'cancelled' | 'superseded';
 
-export interface CursorMeta {
-  owner: CursorOwner;
-  status: CursorStatus;
+export interface WorkMeta {
+  type: WorkType;
+  status: WorkStatus;
   baseline: { git_head: string | null; dirty_paths: string[] };
 }
 

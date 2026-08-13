@@ -1,16 +1,20 @@
-import type { CursorOwner } from './types.js';
+import type { WorkType } from './types.js';
 
 export const skillManifest = [
-  { name: 'k-flow', cursorOwner: false },
-  { name: 'k-onboard', cursorOwner: false },
-  { name: 'k-feat', cursorOwner: true },
-  { name: 'k-issue', cursorOwner: true },
-  { name: 'k-refactor', cursorOwner: true },
-  { name: 'k-roadmap', cursorOwner: true },
-  { name: 'k-review', cursorOwner: false },
-  { name: 'k-knowledge', cursorOwner: false },
+  { name: 'k-flow', workType: null },
+  { name: 'k-onboard', workType: null },
+  { name: 'k-roadmap', workType: 'roadmap' },
+  { name: 'k-feat', workType: 'feat' },
+  { name: 'k-issue', workType: 'issue' },
+  { name: 'k-refactor', workType: 'refactor' },
+  { name: 'k-research', workType: 'research' },
+  { name: 'k-prototype', workType: 'prototype' },
+  { name: 'k-architecture', workType: 'architecture' },
+  { name: 'k-reconcile', workType: null },
+  { name: 'k-review', workType: null },
+  { name: 'k-knowledge', workType: null },
 ] as const;
 
 export const skillNames = skillManifest.map((skill) => skill.name);
-export const cursorOwners = skillManifest.filter((skill) => skill.cursorOwner).map((skill) => skill.name) as CursorOwner[];
-export const cursorOwnerSet = new Set<CursorOwner>(cursorOwners);
+export const workTypes = skillManifest.filter((skill) => skill.workType).map((skill) => skill.workType) as WorkType[];
+export const workTypeSet = new Set<WorkType>(workTypes);

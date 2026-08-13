@@ -1,5 +1,11 @@
 # k-flow
 
+## 1.1.1
+
+### Patch Changes
+
+- Fix the published `kflow` executable silently doing nothing when npm launches it through the global bin symlink.
+
 ## 1.1.0
 
 ### Minor Changes

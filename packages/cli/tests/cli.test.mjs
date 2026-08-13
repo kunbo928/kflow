@@ -73,6 +73,17 @@ test('init --yes installs every detected Agent without prompting', () => {
   assert.deepEqual(initialized.tools, ['codex', 'claude']);
 });
 
+test('CLI executes when launched through a global-style symlink', () => {
+  const cwd = tempProject();
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kflow-bin-'));
+  const linkedCli = path.join(binDir, 'kflow');
+  fs.symlinkSync(cli, linkedCli);
+  const initialized = spawnSync(linkedCli, ['init', '--tools', 'none', '--json'], { cwd, encoding: 'utf8' });
+  assert.equal(initialized.status, 0, initialized.stderr || initialized.stdout);
+  assert.equal(JSON.parse(initialized.stdout).ok, true);
+  assert.ok(fs.existsSync(path.join(cwd, '.agents/skills/k-flow/SKILL.md')));
+});
+
 test('doctor reports old state as legacy without failing or rewriting it', () => {
   const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
   const oldCursorRoot = path.join(cwd, '.kflow/work'); fs.mkdirSync(oldCursorRoot);

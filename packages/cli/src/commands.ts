@@ -44,7 +44,7 @@ export function doctor(cwd: string, options: { fix?: boolean } = {}): CommandRes
     const source = path.join(packageRoot, 'skills', name);
     for (const asset of listFiles(source)) {
       const installed = path.join(cwd, '.agents/skills', name, asset);
-      if (!fs.existsSync(installed)) issues.push({ code: asset === 'SKILL.md' ? 'missing-skill' : 'missing-skill-asset', path: path.relative(cwd, installed) });
+      if (!fs.existsSync(installed)) issues.push({ code: asset === 'SKILL.md' ? 'missing-skill' : 'missing-skill-asset', path: projectRelative(cwd, installed) });
     }
   }
   const invalid = findCursorFiles(base).map((file) => ({ file: path.relative(cwd, file), errors: validateCursor(file) })).filter((entry) => entry.errors.length);
@@ -99,4 +99,7 @@ export function status(cwd: string): CommandResult {
   });
   const counts = { active: records.filter((item) => item.status === 'active').length, blocked: records.filter((item) => item.status === 'blocked').length, invalid: records.filter((item) => item.errors.length).length };
   return { command: 'status', ok: counts.invalid === 0, counts, records };
+}
+function projectRelative(cwd: string, target: string): string {
+  return path.relative(cwd, target).split(path.sep).join('/');
 }

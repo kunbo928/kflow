@@ -1,5 +1,11 @@
 # k-flow
 
+## 2.0.1
+
+### Patch Changes
+
+- 503a9f6: Stop generating `.kflow/cli-invocations.jsonl`; retain `--skill` only for invocation ownership validation.
+
 ## 2.0.0
 
 ### Major Changes

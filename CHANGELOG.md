@@ -1,5 +1,16 @@
 # k-flow
 
+## 1.0.0
+
+### Major Changes
+
+- 6d12fd6: Redesign kflow around eight engineering Skills, a deterministic CLI harness, project-owned canonical knowledge, behavior-specific executable feedback loops, conditionally triggered prototypes, minimal project state, and optional recovery cursors.
+- 6d12fd6: Rename the temporary recovery contract from `.kflow/work/` and `kflow work` to `.kflow/cursors/` and `kflow cursor`. Existing `.kflow/work/` directories are reported as legacy and are not rewritten automatically.
+
+### Minor Changes
+
+- 6d12fd6: Align `kflow init` with the complete K Teach Agent platform registry instead of limiting integrations to four tools.
+
 ## 0.1.0
 
 ### Initial beta

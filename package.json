@@ -5,7 +5,7 @@
   "private": false,
   "type": "module",
   "bin": {
-    "kflow": "./dist/kflow.mjs"
+    "kflow": "dist/kflow.mjs"
   },
   "files": [
     "dist",

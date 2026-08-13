@@ -54,6 +54,9 @@ test('k-feat preserves target-red-to-green and risk-proportional safeguards', ()
     /累计最多 3 个有终态报告的轮次/,
     /跨会话、多人交接或用户要求留痕/,
     /retired.*不应用/,
+    /kflow cursor create k-feat feat-/,
+    /kflow cursor show.*--skill k-feat/,
+    /kflow cursor validate.*--skill k-feat/,
   ]);
 });
 
@@ -68,6 +71,9 @@ test('k-issue separates diagnosis authorization and proves the same symptom red 
     /\[DEBUG-\.\.\.\]/,
     /没有产品 diff 时直接结束，不启动 change review/,
     /retired.*不应用/,
+    /kflow cursor create k-issue issue-/,
+    /kflow cursor show.*--skill k-issue/,
+    /kflow cursor validate.*--skill k-issue/,
   ]);
 });
 
@@ -86,6 +92,9 @@ test('k-refactor establishes and preserves green-to-green equivalence', () => {
     /Strong \| Worth exploring \| Speculative/,
     /不默认打开预览/,
     /retired.*不应用/,
+    /kflow cursor create k-refactor refactor-/,
+    /kflow cursor show.*--skill k-refactor/,
+    /kflow cursor validate.*--skill k-refactor/,
   ]);
 });
 
@@ -111,6 +120,10 @@ test('k-roadmap owns route discovery, execution strategy, review stages, and acc
     /\.kflow\/cursors\/roadmap-\{slug\}\.md/,
     /roadmap: \.\.\/roadmaps\/\{slug\}\.md/,
     /frontmatter 标 `roadmap: \{roadmap-slug\}`/,
+    /kflow cursor create k-roadmap roadmap-/,
+    /kflow cursor show.*--skill k-roadmap/,
+    /kflow cursor validate.*--skill k-roadmap/,
+    /kflow document (search|validate).*--skill k-roadmap/,
   ]);
 });
 
@@ -149,5 +162,6 @@ test('k-onboard creates minimal state without mutating legacy knowledge', () => 
     /不覆盖已有内容/,
     /不复制 Skill 包内文件到项目/,
     /\.gitignore/,
+    /cli-invocations\.jsonl.*不由 onboard 预建/,
   ]);
 });

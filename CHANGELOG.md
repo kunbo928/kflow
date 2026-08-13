@@ -1,5 +1,12 @@
 # k-flow
 
+## 1.1.0
+
+### Minor Changes
+
+- Align `kflow init` with K Teach by adding the same `@inquirer/core` searchable Agent platform selector, detected-platform preselection, `--yes` automation, and explicit failure for non-interactive zero-detection initialization.
+- Connect cursor-owning Skills to the deterministic CLI and add bounded, redacted Skill invocation records under `.kflow/cli-invocations.jsonl`.
+
 ## 1.0.0
 
 ### Major Changes

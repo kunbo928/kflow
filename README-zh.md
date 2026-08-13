@@ -50,7 +50,7 @@ kflow init --tools codex,claude
 kflow init --tools all
 ```
 
-不支持符号链接时使用 `--copy`。替换已有平台集成时使用 `--force`。
+交互式 `init` 会打开可搜索的平台选择器，并预勾选检测到的 Agent。传入 `--yes`（或 `-y`）可跳过选择，直接安装到所有检测到的 Agent。非交互环境中如果无法检测到 Agent，必须通过 `--tools` 明确指定。不支持符号链接时使用 `--copy`，替换已有平台集成时使用 `--force`。
 
 ## 怎么使用
 
@@ -106,17 +106,18 @@ k-feat / k-issue / k-refactor / k-roadmap / k-review
 ```bash
 kflow doctor
 kflow status
-kflow cursor create k-feat export-csv --summary "导出 CSV"
-kflow cursor show export-csv --json
-kflow cursor validate .kflow/cursors/export-csv.md
-kflow document search --dir docs --query "cache"
-kflow document validate --file docs/adr/001.md --require status
+kflow cursor create k-feat feat-export-csv --summary "导出 CSV" --skill k-feat
+kflow cursor show feat-export-csv --skill k-feat --json
+kflow cursor validate .kflow/cursors/feat-export-csv.md --skill k-feat
+kflow document search --dir docs --query "cache" --skill k-roadmap
+kflow document validate --file docs/adr/001.md --require status --skill k-roadmap
 ```
 
 - `doctor` 检查安装、Skill 资产和可恢复状态。
 - `status` 查看当前活动游标数量。
 - `cursor` 只管理必要的跨会话恢复信息。
 - `document` 查询或校验项目已有文档，不创建平行文档系统。
+- Skill 调用必须带 `--skill`。CLI 在 `.kflow/cli-invocations.jsonl` 保留最近 200 条脱敏记录，只写时间、Skill、命令、结果和关联路径，不写摘要、查询文本或其他自由文本参数；普通任务不调用 CLI 时仍然零产物。
 
 ## 项目中会增加什么
 
@@ -125,7 +126,8 @@ kflow document validate --file docs/adr/001.md --require status
 .kflow/
 ├── attention.md      # 几乎每次任务都必须知道的少量事实
 ├── cursors/          # 可选的恢复游标，完成即删
-└── lessons/          # 尚未进入项目正式归宿的经验
+├── lessons/          # 尚未进入项目正式归宿的经验
+└── cli-invocations.jsonl # Skill 首次调用 CLI 时懒创建，最多 200 条
 ```
 
 稳定事实仍进入项目已有的代码、测试、README、产品文档、ADR 或架构文档。旧版 `.kflow` 内容不会被自动删除或批量迁移。

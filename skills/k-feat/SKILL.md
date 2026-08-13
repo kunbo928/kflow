@@ -153,4 +153,5 @@ design 被触发时，最低内容写清改什么、契约变化或不变、真�
 
 - 报告：做了什么、改动文件、验证结果、遗留事项。
 - 需要跨会话继续、多人交接或用户要求留痕时写 `.kflow/cursors/feat-{slug}.md`；高风险本身不自动建游标。游标文件一律带类型前缀 feat- / issue- / refactor- / roadmap-，整理时按前缀分流去向，含目标 / 现场 / 边界 / 证据 / 验收 / 状态与未决六节。完成后先在最终报告列**毕业清单**——哪条结论进了哪个项目文档、沉了哪条 lesson，无可毕业内容则明说——然后才删除；目标位置不存在时给出建议落点请用户拍板，拍板前保留。用户要求留档则保留。
+- 创建游标必须执行 `kflow cursor create k-feat feat-{slug} --skill k-feat`，恢复先执行 `kflow cursor show feat-{slug} --skill k-feat`，交接或收尾前执行 `kflow cursor validate .kflow/cursors/feat-{slug}.md --skill k-feat`；不得手写创建或跳过 CLI 校验。普通零游标任务不为留痕而调用。
 - 属于某个 Roadmap 的子功能时：独立子功能 游标文件的 frontmatter 标 `roadmap: {roadmap-slug}`；日常进展和完成状态只更新 Roadmap 执行游标中对应稳定 ID 的进度与证据指针。永久 Roadmap 文档在 `active` 期间保持冻结，不因日常进度或子功能游标 回链而修改；需要改变子项定义、依赖或验收时交 `k-roadmap` 走边界重确认。

@@ -55,8 +55,26 @@ test('init --tools all supports the complete Agent platform matrix', () => {
   assert.ok(fs.existsSync(path.join(cwd, '.workbuddy/skills/k-flow/SKILL.md')));
 });
 
+test('non-interactive init without detected or selected Agents fails before creating project state', () => {
+  const cwd = tempProject();
+  const initialized = spawnSync(process.execPath, [cli, 'init', '--json'], { cwd, encoding: 'utf8' });
+  assert.equal(initialized.status, 1);
+  assert.match(initialized.stderr, /No Agent tools were detected/);
+  assert.match(initialized.stderr, /--tools all.*--tools none.*--yes/s);
+  assert.equal(fs.existsSync(path.join(cwd, '.agents')), false);
+  assert.equal(fs.existsSync(path.join(cwd, '.kflow')), false);
+});
+
+test('init --yes installs every detected Agent without prompting', () => {
+  const cwd = tempProject();
+  fs.mkdirSync(path.join(cwd, '.codex'));
+  fs.writeFileSync(path.join(cwd, 'CLAUDE.md'), '# Claude\n');
+  const initialized = run(cwd, ['init', '--yes']);
+  assert.deepEqual(initialized.tools, ['codex', 'claude']);
+});
+
 test('doctor reports old state as legacy without failing or rewriting it', () => {
-  const cwd = tempProject(); run(cwd, ['init']);
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
   const oldCursorRoot = path.join(cwd, '.kflow/work'); fs.mkdirSync(oldCursorRoot);
   fs.writeFileSync(path.join(oldCursorRoot, 'old.md'), 'historical cursor\n');
   const legacy = path.join(cwd, '.kflow/features/old'); fs.mkdirSync(legacy, { recursive: true });
@@ -69,7 +87,7 @@ test('doctor reports old state as legacy without failing or rewriting it', () =>
 });
 
 test('optional cursor captures only recovery state and validates', () => {
-  const cwd = tempProject(); run(cwd, ['init']);
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
   assert.equal(run(cwd, ['status']).counts.active, 0);
   const created = run(cwd, ['cursor', 'create', 'k-feat', 'export-csv', '--summary', '导出 CSV']);
   const file = path.join(cwd, created.path); const text = fs.readFileSync(file, 'utf8');
@@ -97,8 +115,41 @@ test('optional cursor captures only recovery state and validates', () => {
   assert.deepEqual(shown.blockedBy, null);
 });
 
+test('Skill-originated CLI calls append a redacted invocation record', () => {
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
+  const log = path.join(cwd, '.kflow/cli-invocations.jsonl');
+  assert.equal(fs.existsSync(log), false);
+  const created = run(cwd, ['cursor', 'create', 'k-feat', 'audit-export', '--summary', 'sensitive summary', '--skill', 'k-feat']);
+  assert.equal(created.ok, true);
+  const records = fs.readFileSync(log, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].skill, 'k-feat');
+  assert.equal(records[0].command, 'cursor create');
+  assert.equal(records[0].ok, true);
+  assert.equal(records[0].target, '.kflow/cursors/audit-export.md');
+  assert.match(records[0].at, /^\d{4}-\d{2}-\d{2}T/);
+  assert.doesNotMatch(JSON.stringify(records[0]), /sensitive summary/);
+  assert.equal(fs.statSync(log).mode & 0o777, 0o600);
+});
+
+test('Skill invocation records are bounded to the latest 200 entries', () => {
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
+  for (let index = 0; index < 205; index += 1) run(cwd, ['status', '--skill', 'k-flow']);
+  const records = fs.readFileSync(path.join(cwd, '.kflow/cli-invocations.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(records.length, 200);
+  assert.ok(records.every((record) => record.skill === 'k-flow' && record.command === 'status'));
+});
+
+test('invalid Skill attribution fails without executing or writing a record', () => {
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
+  const result = spawnSync(process.execPath, [cli, 'status', '--skill', 'not-a-skill', '--json'], { cwd, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Invalid --skill/);
+  assert.equal(fs.existsSync(path.join(cwd, '.kflow/cli-invocations.jsonl')), false);
+});
+
 test('init installs referenced Skill assets and doctor reports missing assets', () => {
-  const cwd = tempProject(); run(cwd, ['init']);
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
   const debug = path.join(cwd, '.agents/skills/k-issue/references/debug.md');
   const wayfinding = path.join(cwd, '.agents/skills/k-roadmap/references/wayfinding.md');
   assert.ok(fs.existsSync(debug));
@@ -106,12 +157,12 @@ test('init installs referenced Skill assets and doctor reports missing assets', 
   fs.rmSync(debug);
   const diagnosis = run(cwd, ['doctor'], 1);
   assert.deepEqual(diagnosis.issues, [{ code: 'missing-skill-asset', path: '.agents/skills/k-issue/references/debug.md' }]);
-  assert.equal(run(cwd, ['init', '--force']).ok, true);
+  assert.equal(run(cwd, ['init', '--tools', 'none', '--force']).ok, true);
   assert.ok(fs.existsSync(debug));
 });
 
 test('cursor rejects invalid owners and incomplete recovery contracts', () => {
-  const cwd = tempProject(); run(cwd, ['init']);
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
   const invalidOwner = spawnSync(process.execPath, [cli, 'cursor', 'create', 'k-guide', 'docs', '--json'], { cwd, encoding: 'utf8' });
   assert.equal(invalidOwner.status, 1); assert.match(invalidOwner.stderr, /Invalid owner/);
   const created = run(cwd, ['cursor', 'create', 'k-issue', 'cache-regression']);
@@ -138,7 +189,7 @@ test('cursor rejects invalid owners and incomplete recovery contracts', () => {
 });
 
 test('document search and validation remain path-neutral utilities', () => {
-  const cwd = tempProject(); run(cwd, ['init']);
+  const cwd = tempProject(); run(cwd, ['init', '--tools', 'none']);
   const docs = path.join(cwd, 'docs'); fs.mkdirSync(docs);
   fs.writeFileSync(path.join(docs, 'decision.md'), `---\ndoc_type: decision\nstatus: current\ntags: [workflow]\n---\n\nUse project-owned docs.\n`);
   const found = run(cwd, ['document', 'search', '--dir', 'docs', '--filter', 'doc_type=decision', '--query', 'project-owned']);

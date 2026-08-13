@@ -44,7 +44,7 @@ kflow init --tools codex,claude
 kflow init --tools all
 ```
 
-Use `--copy` where symlinks are unavailable and `--force` to replace an existing integration.
+Interactive `init` opens a searchable platform selector and preselects detected Agents. Use `--yes` (or `-y`) to skip selection and install to every detected Agent. In non-interactive environments, pass `--tools` when no Agent can be detected. Use `--copy` where symlinks are unavailable and `--force` to replace an existing integration.
 
 ## Use it
 
@@ -98,12 +98,14 @@ Each Skill is independently usable and follows the open Agent Skills directory f
 ```bash
 kflow doctor
 kflow status
-kflow cursor create k-feat export-csv --summary "Export CSV"
-kflow cursor show export-csv --json
-kflow cursor validate .kflow/cursors/export-csv.md
-kflow document search --dir docs --query "cache"
-kflow document validate --file docs/adr/001.md --require status
+kflow cursor create k-feat feat-export-csv --summary "Export CSV" --skill k-feat
+kflow cursor show feat-export-csv --skill k-feat --json
+kflow cursor validate .kflow/cursors/feat-export-csv.md --skill k-feat
+kflow document search --dir docs --query "cache" --skill k-roadmap
+kflow document validate --file docs/adr/001.md --require status --skill k-roadmap
 ```
+
+Skill calls must include `--skill`. The CLI keeps the latest 200 redacted calls in `.kflow/cli-invocations.jsonl`, recording only time, Skill, command, result, and an associated path—not summaries, query text, or other free-form arguments. Ordinary tasks that do not call the CLI still create no artifact.
 
 ## What it adds to a project
 
@@ -112,7 +114,8 @@ kflow document validate --file docs/adr/001.md --require status
 .kflow/
 ├── attention.md      # small set of facts needed for nearly every task
 ├── cursors/          # optional recovery cursors, deleted when complete
-└── lessons/          # lessons not yet promoted to a stronger owner
+├── lessons/          # lessons not yet promoted to a stronger owner
+└── cli-invocations.jsonl # created lazily on the first Skill CLI call, capped at 200 entries
 ```
 
 Stable facts continue to live in project-owned code, tests, README files, product documents, ADRs, or architecture docs. Legacy `.kflow` data is never deleted or bulk-migrated automatically.

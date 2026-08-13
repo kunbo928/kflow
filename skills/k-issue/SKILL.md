@@ -146,3 +146,4 @@ design 被触发时，最低内容写清改什么、契约变化或不变、真�
   没有产品 diff 时直接结束，不启动 change review。
 - 报告：根因一句话、改动文件、验证结果。
 - 需要跨会话继续时写 `.kflow/cursors/issue-{slug}.md`（目标 / 现场 / 边界 / 证据 / 验收 / 状态与未决六节；游标文件一律带类型前缀）。完成后先在报告列毕业去向（结论进哪、lesson 沉哪，或明说无可毕业）再删除；目标位置不存在时在清单中建议落点请用户拍板，拍板前不删。用户要求留档则保留。
+- 创建游标必须执行 `kflow cursor create k-issue issue-{slug} --skill k-issue`，恢复先执行 `kflow cursor show issue-{slug} --skill k-issue`，交接或收尾前执行 `kflow cursor validate .kflow/cursors/issue-{slug}.md --skill k-issue`；不得手写创建或跳过 CLI 校验。普通零游标任务不为留痕而调用。

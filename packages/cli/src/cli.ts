@@ -3,20 +3,28 @@ import path from 'node:path';
 import { createCursor, doctor, initProject, showCursor, status, validateOneCursor } from './commands.js';
 import type { CommandResult, CursorOwner } from './types.js';
 import { searchDocuments, validateDocuments } from './documents.js';
+import { recordInvocation } from './invocations.js';
+import { skillNames } from './skill-manifest.js';
+import { agentTools, selectTools } from './agent-integrations.js';
+import { agentChoices, filterChoices, initiallySelectedIds, selectAgentsInteractively } from './agent-selection.js';
+
+export { filterChoices, initiallySelectedIds } from './agent-selection.js';
 
 function option(args: string[], name: string): string | undefined { const index = args.indexOf(name); if (index < 0) return undefined; const value = args[index + 1]; if (!value || value.startsWith('--')) throw new Error(`${name} requires a value`); return value; }
 function has(args: string[], name: string): boolean { return args.includes(name); }
 function options(args: string[], name: string): string[] { const values: string[] = []; for (let index = 0; index < args.length; index += 1) if (args[index] === name) { const value = args[index + 1]; if (!value || value.startsWith('--')) throw new Error(`${name} requires a value`); values.push(value); } return values; }
 
 function usage(): never { throw new Error(`Usage:
-  kflow init [path] [--tools <ids>|all|none] [--copy] [--force] [--json]
+  kflow init [path] [--tools <ids>|all|none] [--yes|-y] [--copy] [--force] [--json]
   kflow doctor [--fix] [--json]
   kflow status [--json]
   kflow document search --dir PATH [--filter EXPR]... [--query TEXT] [--sort-by FIELD] [--order asc|desc] [--full] [--json]
   kflow document validate (--file PATH|--dir PATH) [--require FIELD]... [--yaml-only] [--json]
   kflow cursor create <k-feat|k-issue|k-refactor|k-roadmap> <slug> [--summary TEXT] [--json]
   kflow cursor show <slug|path> [--json]
-  kflow cursor validate <path> [--json]`); }
+  kflow cursor validate <path> [--json]
+
+Skill calls add --skill <k-flow|k-onboard|k-feat|k-issue|k-refactor|k-roadmap|k-review|k-knowledge>.`); }
 
 function print(result: CommandResult, json: boolean): void {
   if (json) console.log(JSON.stringify(result, null, 2));
@@ -26,8 +34,21 @@ function print(result: CommandResult, json: boolean): void {
 }
 
 export async function main(args: string[]): Promise<void> {
-  const json = has(args, '--json'); const positional = args.filter((value, index) => !value.startsWith('--') && (index === 0 || !args[index - 1]?.startsWith('--'))); const [group, action] = positional; const cwd = process.cwd(); let result: CommandResult;
-  if (group === 'init') { const target = positional[1] ? path.resolve(cwd, positional[1]) : cwd; result = initProject(target, { tools: option(args, '--tools'), copy: has(args, '--copy'), force: has(args, '--force') }); }
+  const json = has(args, '--json'); const skill = option(args, '--skill');
+  if (skill && !(skillNames as readonly string[]).includes(skill)) throw new Error(`Invalid --skill: ${skill}`);
+  const positional = args.filter((value, index) => !value.startsWith('--') && (index === 0 || !args[index - 1]?.startsWith('--'))); const [group, action] = positional; const cwd = process.cwd(); let result: CommandResult;
+  if (group === 'init') {
+    const target = positional[1] ? path.resolve(cwd, positional[1]) : cwd;
+    const explicit = option(args, '--tools');
+    const detected = selectTools(target);
+    let selected: string;
+    if (explicit !== undefined) selected = explicit;
+    else if (has(args, '--yes') || has(args, '-y')) selected = detected.map((tool) => tool.id).join(',') || 'none';
+    else if (process.stdin.isTTY && process.stdout.isTTY) selected = (await selectAgentsInteractively(agentChoices(agentTools, detected))).join(',');
+    else if (detected.length > 0) selected = detected.map((tool) => tool.id).join(',');
+    else throw new Error('No Agent tools were detected. Pass --tools all, --tools none, --yes to install to detected Agents, or a comma-separated tool list.');
+    result = initProject(target, { tools: selected || 'none', copy: has(args, '--copy'), force: has(args, '--force') });
+  }
   else if (group === 'doctor') result = doctor(cwd, { fix: has(args, '--fix') });
   else if (group === 'status') result = status(cwd);
   else if (group === 'document' && action === 'search') { const dir = option(args, '--dir'); if (!dir) usage(); const order = option(args, '--order'); if (order && !['asc', 'desc'].includes(order)) throw new Error('Invalid --order: expected asc or desc'); result = searchDocuments(cwd, { dir, filters: options(args, '--filter'), query: option(args, '--query'), sortBy: option(args, '--sort-by'), order, full: has(args, '--full') }); }
@@ -36,5 +57,6 @@ export async function main(args: string[]): Promise<void> {
   else if (group === 'cursor' && action === 'show') { const slug = positional[2]; if (!slug) usage(); result = showCursor(cwd, slug); }
   else if (group === 'cursor' && action === 'validate') { const file = positional[2]; if (!file) usage(); result = validateOneCursor(cwd, file); }
   else usage();
+  if (skill) recordInvocation(cwd, skill, result);
   print(result, json);
 }

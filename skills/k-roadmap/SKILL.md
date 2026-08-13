@@ -21,6 +21,7 @@ argument-hint: "[大需求描述]"
   新建 Roadmap。仓库事实优先于聊天历史；hash、策略字段或仓库事实不一致时先修复或请求上下文，不创建
   重复 Roadmap。
 - 起草 proposed 永久 Roadmap 文档时，同时创建或复用对应执行游标并保持 `phase: planning`、`approved_revision: pending`、`current_item: null`。
+- 项目文档候选扫描和校验必须使用 `kflow document search ... --skill k-roadmap` 或 `kflow document validate ... --skill k-roadmap`；创建游标执行 `kflow cursor create k-roadmap roadmap-{slug} --skill k-roadmap`，恢复先执行 `kflow cursor show roadmap-{slug} --skill k-roadmap`，每次交接、里程碑或收尾前执行 `kflow cursor validate .kflow/cursors/roadmap-{slug}.md --skill k-roadmap`。不得手写创建、绕过 CLI 查询或跳过校验。
 - 同一会话由 `k-flow` 交入且带已确认 handoff 时，直接消费目标入口、原始诉求、目标或期望行为、范围/非目标、验收、已核实仓库事实及来源、owner 已确认的术语与决策、未决风险、canonical 资产指针或资产候选；packet 精确范围内已确认的事项不重复询问。handoff 只证明当前会话共识，不扩大实现、commit、发布或写入授权，也不替代本 skill 的 review、验证与确认门槛；字段缺失、仓库事实冲突、出现会改变结果的新风险、缺少会改变方向的事实或超出已确认边界时再按本 skill 规则确认。
 - handoff 只用于起草 proposed 永久 Roadmap 文档，不替代 fresh design review、批准 hash 或第一道 owner gate。
 - 澄清需求：只问会改变拆解方向的问题（目标边界、优先级、验收口径），一次最多 3 个，形成共识即停。

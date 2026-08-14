@@ -5,11 +5,17 @@
   "skills": [
     "./skills/k-flow",
     "./skills/k-onboard",
+    "./skills/k-roadmap",
     "./skills/k-feat",
     "./skills/k-issue",
     "./skills/k-refactor",
-    "./skills/k-roadmap",
+    "./skills/k-research",
+    "./skills/k-prototype",
+    "./skills/k-reconcile",
+    "./skills/k-implement",
+    "./skills/k-grilling",
     "./skills/k-review",
-    "./skills/k-knowledge"
+    "./skills/k-knowledge",
+    "./skills/k-author"
   ]
 }

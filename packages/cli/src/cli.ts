@@ -3,7 +3,6 @@ import path from 'node:path';
 import { createWork, doctor, initProject, showWork, status, validateMap, validateOneWork } from './commands.js';
 import type { CommandResult, WorkType } from './types.js';
 import { searchDocuments, validateDocuments } from './documents.js';
-import { skillNames } from './skill-manifest.js';
 import { agentTools, selectTools } from './agent-integrations.js';
 import { agentChoices, filterChoices, initiallySelectedIds, selectAgentsInteractively } from './agent-selection.js';
 
@@ -18,13 +17,11 @@ function usage(): never { throw new Error(`Usage:
   kflow doctor [--fix] [--json]
   kflow status [--json]
   kflow map validate [--json]
-  kflow work create <roadmap|feat|issue|refactor|research|prototype|architecture> <slug> [--summary TEXT] [--json]
+  kflow work create <roadmap|feat|issue|refactor|research|prototype> <slug> [--summary TEXT] [--json]
   kflow work show <type-slug|path> [--json]
   kflow work validate <type-slug|path> [--json]
   kflow document search --dir PATH [--filter EXPR]... [--query TEXT] [--sort-by FIELD] [--order asc|desc] [--full] [--json]
-  kflow document validate (--file PATH|--dir PATH) [--require FIELD]... [--yaml-only] [--json]
-
-Skill calls add --skill <installed k-* skill>.`); }
+  kflow document validate (--file PATH|--dir PATH) [--require FIELD]... [--yaml-only] [--json]`); }
 
 function print(result: CommandResult, json: boolean): void {
   if (json) console.log(JSON.stringify(result, null, 2));
@@ -34,8 +31,8 @@ function print(result: CommandResult, json: boolean): void {
 }
 
 export async function main(args: string[]): Promise<void> {
-  const json = has(args, '--json'); const skill = option(args, '--skill');
-  if (skill && !(skillNames as readonly string[]).includes(skill)) throw new Error(`Invalid --skill: ${skill}`);
+  const json = has(args, '--json');
+  if (has(args, '--skill')) throw new Error('未知选项：--skill');
   const positional = args.filter((value, index) => !value.startsWith('--') && (index === 0 || !args[index - 1]?.startsWith('--'))); const [group, action] = positional; const cwd = process.cwd(); let result: CommandResult;
   if (group === 'init') {
     const target = positional[1] ? path.resolve(cwd, positional[1]) : cwd;

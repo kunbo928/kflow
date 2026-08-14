@@ -9,10 +9,12 @@ export const skillManifest = [
   { name: 'k-refactor', workType: 'refactor' },
   { name: 'k-research', workType: 'research' },
   { name: 'k-prototype', workType: 'prototype' },
-  { name: 'k-architecture', workType: 'architecture' },
   { name: 'k-reconcile', workType: null },
   { name: 'k-review', workType: null },
   { name: 'k-knowledge', workType: null },
+  { name: 'k-implement', workType: null },
+  { name: 'k-grilling', workType: null },
+  { name: 'k-author', workType: null },
 ] as const;
 
 export const skillNames = skillManifest.map((skill) => skill.name);

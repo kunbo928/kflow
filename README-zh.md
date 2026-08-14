@@ -7,11 +7,11 @@
 [English](README.md) · 简体中文
 
 ![status](https://img.shields.io/badge/status-beta-F59E0B?style=flat-square)
-![skills](https://img.shields.io/badge/skills-12-2F7A5E?style=flat-square)
+![skills](https://img.shields.io/badge/skills-14-2F7A5E?style=flat-square)
 
 </div>
 
-kflow 是一套面向 AI 编码 Agent 的工程工作流。它把功能开发、问题修复、重构、路线图和代码审查分别交给对应 Skill，并要求 Agent 用可重复的证据证明结果。
+kflow 是一套面向 AI 编码 Agent 的工程工作流。它把工作交给对应 Skill，并要求 Agent 用可重复的证据证明结果。
 
 你仍然在熟悉的项目、代码库、测试和文档中工作。kflow 不接管项目管理，不复制一套需求或架构系统，也不会让普通任务先填写一堆流程文件。
 
@@ -23,11 +23,11 @@ kflow 为不同类型的工作提供不同闭环：
 
 | 你要做的事 | kflow 如何推进 | 完成证据 |
 |---|---|---|
-| 新增或改变功能 | 明确目标行为，再实现最小完整改动 | 目标行为 `red → green` |
-| 修复 Bug | 先复现同一个用户症状，再诊断和修复 | 故障症状 `red → green` |
+| 新增或改变功能 | 拷问至 Spec Clear，再实现最小完整改动 | 目标行为 `red → green` |
+| 修复 Bug | 先复现同一个用户症状；诊断不等于修复授权 | 故障症状 `red → green` |
 | 重构代码 | 修改前建立行为基线，过程中保持等价 | 行为基线 `green → green` |
 | 推进大目标 | 拆分依赖、决策点和可验收交付项 | 子项证据 + 整体验收 |
-| 审查代码 | 冻结审查范围，按严重程度报告发现 | 可定位、可行动的 findings |
+| 审查代码 | 冻结 git `base`/`head`，按严重程度报告发现 | 独立 `review_passed` 或 owner `risk_accepted` |
 
 风险低、方向清楚的任务直接完成；只有高风险、跨会话或多交付项工作才增加检查点和恢复记录。
 
@@ -41,7 +41,7 @@ cd your-project
 kflow init
 ```
 
-`init` 会把 12 个 Skill 安装到 `.agents/skills/`，建立渐进式 Project Map 与 Works 骨架，并自动连接项目中检测到的 Agent 平台。
+`init` 会把 14 个 Skill 安装到 `.agents/skills/`，建立渐进式 Project Map 与 Works 骨架，并自动连接项目中检测到的 Agent 平台。不创建 `lessons/` 或 `attention.md`。
 
 显式指定平台或安装全部平台：
 
@@ -54,7 +54,7 @@ kflow init --tools all
 
 ## 怎么使用
 
-初始化后，直接在 Agent 对话中描述任务即可。`k-flow` 是统一入口，会判断这是执行、讨论、建议还是导览，并把工程任务交给正确的 Skill。
+初始化后，直接在 Agent 对话中描述任务即可。`k-flow` 是统一入口：先读项目地图，再选定 Work 类型和当前步骤。
 
 ```text
 用 kflow 给订单列表增加 CSV 导出。
@@ -65,7 +65,7 @@ kflow init --tools all
 
 用 kflow 为支付模块迁移制定并执行路线图。
 
-用 kflow 审查这个 PR，只报告问题，不修改代码。
+用 kflow 审查这个 PR，只报告问题，不修改产品代码。
 ```
 
 典型执行路径：
@@ -73,69 +73,69 @@ kflow init --tools all
 ```text
 你的目标
   ↓
-k-flow 判断任务类型与授权边界
+k-flow 选定 Work 类型与当前步骤
   ↓
-k-feat / k-issue / k-refactor / k-roadmap / k-review
+k-grilling 至 Spec Clear → k-implement（red → green）→ k-review → k-knowledge
   ↓
 读取真实代码与项目约定
   ↓
-建立反馈信号 → 完成改动 → 用同一信号验证
-  ↓
-交付代码、验证结果、剩余风险与必要知识
+交付代码、验证结果、剩余风险，并把稳定事实写回 AGENTS.md / project-map
 ```
 
-每个工程任务使用一个 `.kflow/works/{type}-{slug}/`：`spec.md` 保存稳定契约，`work.md` 保存活动状态；完成后是否保留 `work.md` 由用户决定。
+每个有边界的工作使用一个 `.kflow/works/{type}-{slug}/`：`spec.md` 保存稳定契约，`work.md` 保存活动状态；完成后是否保留 `work.md` 由用户决定。
 
-## 12 个 Skill
+## 14 个 Skill
 
 | Skill | 用途 |
 |---|---|
-| `k-flow` | 统一入口，理解诉求并路由到正确工作流 |
-| `k-onboard` | 接入现有项目，识别代码、测试、文档与约定 |
+| `k-flow` | 统一入口，选定 Work 类型和当前步骤 |
+| `k-onboard` | 建立经过核实的项目地图和 AGENTS 契约 |
 | `k-feat` | 新增或改变用户可观察行为 |
 | `k-issue` | 复现、诊断并在获得授权后修复问题 |
 | `k-refactor` | 保持行为等价地改进内部结构 |
 | `k-roadmap` | 管理多交付项目标、依赖、决策与整体验收 |
 | `k-research` | 基于一手证据调研，不扩大实现授权 |
 | `k-prototype` | 用可丢弃原型回答一个决策问题 |
-| `k-architecture` | 审计和设计模块架构，不直接实施 |
 | `k-reconcile` | 以代码和事实 owner 为准校准 Project Map |
-| `k-review` | 对明确范围进行只读代码审查 |
-| `k-knowledge` | 管理注意事项、经验和长期事实归宿 |
+| `k-implement` | 对着已有 spec 做 TDD；不新建 Work 类型 |
+| `k-grilling` | 拷问至 Spec Clear；已清则零提问 |
+| `k-review` | 对冻结 `base`/`head` 做独立双轴审查 |
+| `k-knowledge` | 把稳定事实写回 AGENTS.md 或 project-map |
+| `k-author` | 怎么写给 Agent 看的 AGENTS.md、地图和 Skill |
 
-每个 Skill 都可以独立使用，并遵循开放的 Agent Skills 目录格式。Skill 负责语义判断和工程方法；CLI 只负责适合确定性执行的安装、检查、恢复和文档查询。
+每个 Skill 都可以独立使用，并遵循开放的 Agent Skills 目录格式。Skill 负责语义判断和工程方法；CLI 只负责安装、形状/非空/路径校验、恢复和文档查询。
 
 ## 常用 CLI
 
 ```bash
 kflow doctor
 kflow status
-kflow work create feat export-csv --summary "导出 CSV" --skill k-feat
-kflow work show feat-export-csv --skill k-feat --json
-kflow work validate feat-export-csv --skill k-feat
-kflow map validate --skill k-onboard
-kflow document search --dir docs --query "cache" --skill k-roadmap
-kflow document validate --file docs/adr/001.md --require status --skill k-roadmap
+kflow work create feat export-csv --summary "导出 CSV"
+kflow work show feat-export-csv --json
+kflow work validate feat-export-csv
+kflow map validate
+kflow document search --dir docs --query "cache"
+kflow document validate --file docs/adr/001.md --require status
 ```
 
-- `doctor` 检查安装、Skill 资产和可恢复状态。
+- `doctor` 检查安装、Skill 资产和可恢复状态。遗留 `lessons/` / `attention.md` 只报告不失败。
 - `status` 查看当前 Work 状态。
 - `work` 创建并校验统一的 Spec 与活动状态。
+- `map validate` 检查地图章节与指针路径存在。
 - `document` 查询或校验项目已有文档，不创建平行文档系统。
-- Skill 调用必须带 `--skill`，CLI 用它校验调用归属，不生成调用日志。
+
+CLI 强制形状、非空和路径存在。不跑测试、不判拷问、不核验「reviewer 是不是实施者」。
 
 ## 项目中会增加什么
 
 ```text
-.agents/skills/       # 12 个 Skill 的规范副本
+.agents/skills/       # 14 个 Skill 的规范副本
 .kflow/
 ├── project-map/      # 渐进式项目全貌导航
-├── works/            # 统一的 roadmap、任务与探索 Work
-├── attention.md      # 几乎每次任务都必须知道的少量事实
-└── lessons/          # 尚未进入项目正式归宿的经验
+└── works/            # 统一的 roadmap、任务与探索 Work
 ```
 
-稳定事实仍进入项目已有的代码、测试、README、产品文档、ADR 或架构文档。旧版 `.kflow` 内容不会被自动删除或批量迁移。
+AI 入口只有根 `AGENTS.md` 与 project-map。稳定事实仍进入项目已有的代码、测试、README、产品文档或 ADR。旧版 `.kflow` 内容不会被自动删除或批量迁移。
 
 ## 开发 kflow
 

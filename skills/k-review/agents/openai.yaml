@@ -1,4 +1,4 @@
 interface:
   display_name: "kflow Review"
-  short_description: "只读叶子审查：diff / design / repo audit"
-  default_prompt: "使用 $k-review 单轮审查当前 diff，直接返回分级发现与结论，不创建任何子 agent。"
+  short_description: "独立双轴审查：冻结 base/head 上的 Spec 与 Standards"
+  default_prompt: "使用 $k-review 审查当前冻结 diff。记下 git base 与 head；Spec 与 Standards 在隔离子代理中进行；写入 work.md 审查节，终态为 review_passed 或交 owner 开 risk_accepted。不改产品代码，不创建 review.md。"

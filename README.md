@@ -7,11 +7,11 @@
 English · [简体中文](README-zh.md)
 
 ![status](https://img.shields.io/badge/status-beta-F59E0B?style=flat-square)
-![skills](https://img.shields.io/badge/skills-12-2F7A5E?style=flat-square)
+![skills](https://img.shields.io/badge/skills-14-2F7A5E?style=flat-square)
 
 </div>
 
-kflow is an engineering workflow for AI coding agents. It routes feature work, bug fixes, refactors, roadmaps, and reviews to focused Skills, then requires repeatable evidence that the requested outcome actually works.
+kflow is an engineering workflow for AI coding agents. It routes work to focused Skills, then requires repeatable evidence that the requested outcome actually works.
 
 You keep working in the project's existing code, tests, and documentation. kflow does not replace project management, create a parallel requirements system, or force ordinary tasks through workflow paperwork.
 
@@ -19,11 +19,11 @@ You keep working in the project's existing code, tests, and documentation. kflow
 
 | Your task | How kflow approaches it | Completion evidence |
 |---|---|---|
-| Add or change behavior | define the target behavior, then implement the smallest complete change | target behavior `red → green` |
-| Fix a bug | reproduce the same user-visible symptom before diagnosis and repair | symptom `red → green` |
+| Add or change behavior | grill until Spec Clear, then implement the smallest complete change | target behavior `red → green` |
+| Fix a bug | reproduce the same user-visible symptom; diagnosis is not repair authority | symptom `red → green` |
 | Refactor code | establish a behavioral baseline before changing structure | baseline `green → green` |
 | Deliver a larger goal | manage dependencies, decisions, and independently verifiable items | item evidence + integrated acceptance |
-| Review code | freeze the review target and report severity-ranked findings | localized, actionable findings |
+| Review code | freeze git `base`/`head` and report severity-ranked findings | independent `review_passed` or owner `risk_accepted` |
 
 Low-risk, well-defined work stays direct. Checkpoints and recovery records appear only when the actual risk, duration, or number of deliverables calls for them.
 
@@ -37,7 +37,7 @@ cd your-project
 kflow init
 ```
 
-`init` installs twelve Skills under `.agents/skills/`, creates the progressive Project Map and Works skeleton, and connects detected Agent platforms.
+`init` installs fourteen Skills under `.agents/skills/`, creates the progressive Project Map and Works skeleton, and connects detected Agent platforms. It does not create `lessons/` or `attention.md`.
 
 ```bash
 kflow init --tools codex,claude
@@ -48,7 +48,7 @@ Interactive `init` opens a searchable platform selector and preselects detected 
 
 ## Use it
 
-After initialization, describe the work naturally in your Agent. `k-flow` is the common entry point: it distinguishes execution, discussion, advice, and orientation, then routes engineering work to the right Skill.
+After initialization, describe the work naturally in your Agent. `k-flow` is the common entry point: it reads the Project Map, then selects a Work type and the current step.
 
 ```text
 Use kflow to add CSV export to the orders table.
@@ -59,71 +59,69 @@ Use kflow to refactor this cache without changing behavior.
 
 Use kflow to plan and deliver the payment-module migration.
 
-Use kflow to review this PR. Report findings without editing code.
+Use kflow to review this PR. Report findings without editing product code.
 ```
 
 ```text
 Your goal
   ↓
-k-flow identifies task type and authorization boundary
+k-flow selects Work type and current step
   ↓
-k-feat / k-issue / k-refactor / k-roadmap / k-review
+k-grilling until Spec Clear → k-implement (red → green) → k-review → k-knowledge
   ↓
 inspect real code and project conventions
   ↓
-establish signal → make change → verify with the same signal
-  ↓
-deliver code, evidence, remaining risk, and durable knowledge
+deliver code, evidence, remaining risk, and durable context in AGENTS.md / project-map
 ```
 
-Each engineering task owns one `.kflow/works/{type}-{slug}/`: `spec.md` keeps the stable contract and `work.md` keeps active state. The user decides whether completed `work.md` remains.
+Each bounded effort owns one `.kflow/works/{type}-{slug}/`: `spec.md` keeps the stable contract and `work.md` keeps active state. The user decides whether completed `work.md` remains.
 
-## The twelve Skills
+## The fourteen Skills
 
 | Skill | Purpose |
 |---|---|
-| `k-flow` | common entry point and workflow routing |
-| `k-onboard` | understand an existing project's code, tests, docs, and conventions |
+| `k-flow` | common entry: choose Work type and current step |
+| `k-onboard` | build a verified Project Map and AGENTS contract |
 | `k-feat` | add or change user-observable behavior |
 | `k-issue` | reproduce, diagnose, and—when authorized—fix a defect |
 | `k-refactor` | improve internal structure while preserving behavior |
 | `k-roadmap` | coordinate multi-deliverable goals, dependencies, and acceptance |
 | `k-research` | investigate primary evidence without implementation authority |
 | `k-prototype` | use a disposable artifact to answer one decision |
-| `k-architecture` | audit and design module architecture without implementation |
 | `k-reconcile` | reconcile Project Map against code and canonical owners |
-| `k-review` | perform a read-only review of a frozen target |
-| `k-knowledge` | manage attention, lessons, and durable knowledge ownership |
+| `k-implement` | TDD against an existing spec; does not create a Work type |
+| `k-grilling` | question until Spec Clear; zero questions when already clear |
+| `k-review` | independent two-axis review of a frozen `base`/`head` |
+| `k-knowledge` | write durable facts back to AGENTS.md or project-map |
+| `k-author` | how to write agent-facing AGENTS.md, maps, and Skills |
 
-Each Skill is independently usable and follows the open Agent Skills directory format. Skills own judgment and engineering method; the CLI owns deterministic installation, checks, recovery, and document queries.
+Each Skill is independently usable and follows the open Agent Skills directory format. Skills own judgment and engineering method; the CLI owns deterministic installation, shape checks, recovery, and document queries.
 
 ## Useful CLI commands
 
 ```bash
 kflow doctor
 kflow status
-kflow work create feat export-csv --summary "Export CSV" --skill k-feat
-kflow work show feat-export-csv --skill k-feat --json
-kflow work validate feat-export-csv --skill k-feat
-kflow map validate --skill k-onboard
-kflow document search --dir docs --query "cache" --skill k-roadmap
-kflow document validate --file docs/adr/001.md --require status --skill k-roadmap
+kflow work create feat export-csv --summary "Export CSV"
+kflow work show feat-export-csv --json
+kflow work validate feat-export-csv
+kflow map validate
+kflow document search --dir docs --query "cache"
+kflow document validate --file docs/adr/001.md --require status
 ```
 
-Skill calls must include `--skill`; the CLI uses it to validate invocation ownership and does not generate an invocation log.
+The CLI enforces shape, non-empty contract sections, and that map pointers exist. It does not run tests, score grilling, or judge whether the reviewer was the implementer.
 
 ## What it adds to a project
 
 ```text
-.agents/skills/       # canonical copies of the twelve Skills
+.agents/skills/       # canonical copies of the fourteen Skills
 .kflow/
 ├── project-map/      # progressively disclosed project navigation
-├── works/            # unified roadmap, task, and exploration Works
-├── attention.md      # small set of facts needed for nearly every task
-└── lessons/          # lessons not yet promoted to a stronger owner
+└── works/            # unified roadmap, task, and exploration Works
 ```
 
-Stable facts continue to live in project-owned code, tests, README files, product documents, ADRs, or architecture docs. Legacy `.kflow` data is never deleted or bulk-migrated automatically.
+AI-facing entry points are root `AGENTS.md` and project-map. Stable facts continue to live in project-owned code, tests, README files, product documents, or ADRs. Legacy `.kflow` data is never deleted or bulk-migrated automatically.
 
 ## Develop kflow
 

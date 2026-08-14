@@ -3,6 +3,10 @@ __pycache__
 *.pyc
 .agents
 .temp
+.scratch
+.reasonix
+skills-lock.json
 dist
 node_modules
 .DS_Store
+*.tgz

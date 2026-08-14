@@ -1,20 +1,17 @@
 ---
 name: k-review
-description: 对冻结的 diff 或设计执行只读 Spec 与 Standards 双轴审查。
+description: 对冻结的 git base/head 做独立 Spec 与 Standards 双轴审查。
 argument-hint: "[范围或目标]"
 ---
 
 # k-review
 
-只审查一个不可变目标并返回一份终态报告。本 Skill 只读且为叶子执行器：不修改产品或上下文文件，不创建子 Agent。
+对一份冻结 diff 返回终态。实施者只能自审预检；最终批准者必须独立于实施者（可以是另一个 Agent；人不必须在环上）。小改动可降深度，不可取消终审、不可作者自批。
 
-调用方提供意图、冻结的 diff/range/文档 hash、适用 Spec、项目地图指针、局部 `AGENTS.md`、排除范围和返回格式。信息不足时返回 `NeedsContext` 及缺失内容。
+审查前记下 git `base` 与 `head`；结论只对这一对有效，`head` 再变则旧结论 stale。手法见 [`references/two-axis.md`](references/two-axis.md)。Spec 与 Standards 在隔离子代理中进行，一轴通过不能抵消另一轴阻塞项。
 
-同时审查：
+每个 finding 含级别（blocking、important、nit）、位置、后果和可执行修正。blocking / important 挡住 `accepted`；nit 永不挡。存在未勾的 blocking 或 important 时不能 `review_passed`。
 
-- **Spec**：实现和测试是否覆盖已接受的行为、边界与场景。
-- **Standards**：归属、命名、模块深度、调用方、测试接缝和仓库规则是否仍然健康。
+把结论写入当前 Work 的 `work.md` 审查节：`base`、`head`、分级 finding、终态 `review_passed`。紧急且独立 reviewer 不可得时，仅 owner（人）可开 `risk_accepted`（理由、范围、补审责任）。不改产品代码。除非用户明确要求持久报告或合规要求，否则不创建 `review.md`。
 
-每个 finding 包含级别（blocking、important、nit）、文件与行号或设计章节、后果和可执行修正。存在 blocking 时不能通过。复审检查完整新目标和修复增量，将旧 finding 标记为 resolved 或 unresolved，同时报告新增 finding。
-
-完整审查会话由 PR/MR/Gerrit 保存；没有外部后端时，由调用方把未解决 finding 暂存到 `work.md`。除非用户明确要求持久报告或合规要求，否则不创建 `review.md`。
+复审检查完整新目标和修复增量，将旧 finding 标记为 resolved 或 unresolved，同时报告新增 finding。信息不足时返回 `NeedsContext` 及缺失内容。

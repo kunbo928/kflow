@@ -33,6 +33,9 @@ test('v3 黑盒链路：init 到 Roadmap accepted', () => {
   }
   const spec = path.join(root, 'spec.md');
   fs.writeFileSync(spec, fs.readFileSync(spec, 'utf8')
+    .replace('## 目的地\n', '## 目的地\n完成下单。\n')
+    .replace('## 范围与非目标\n', '## 范围与非目标\n只覆盖单商品。\n')
+    .replace('## 整体验收\n', '## 整体验收\n提交后返回订单号。\n')
     .replace('## Feature 索引\n', '## Feature 索引\n- FEAT-01 · 下单（accepted）\n')
     .replace('### 实现\n', '### 实现\n下单能力已交付。\n')
     .replace('### 验证\n', '### 验证\n整体验收通过。\n')
@@ -43,7 +46,7 @@ test('v3 黑盒链路：init 到 Roadmap accepted', () => {
     .replace('## 当前状态\n', '## 当前状态\n全部 Feature 已完成。\n')
     .replace('## 下一步\n', '## 下一步\n由用户决定是否保留本文件。\n')
     .replace('## 验证证据\n', '## 验证证据\n目标行为 red → green，整体验收通过。\n')
-    .replace('## 审查\n', '## 审查\nSpec 与 Standards 均通过。\n')
+    .replace('## 审查\n', '## 审查\nbase: 1111111111111111111111111111111111111111\nhead: 2222222222222222222222222222222222222222\nreview_passed\n')
     .replace('## 上下文同步\n', '## 上下文同步\n项目地图无需更新。\n'));
 
   assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);

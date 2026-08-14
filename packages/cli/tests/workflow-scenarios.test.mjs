@@ -21,5 +21,12 @@ test('Roadmap 子 Feature 使用父级 Work 且不生成重复独立 Feature', (
 });
 
 test('完成后的 Work 状态从不自动删除', () => {
-  for (const name of ['k-feat', 'k-issue', 'k-refactor', 'k-roadmap', 'k-research', 'k-prototype', 'k-architecture']) assert.match(read(name), /由用户决定/);
+  for (const name of ['k-feat', 'k-issue', 'k-refactor', 'k-roadmap', 'k-research', 'k-prototype']) assert.match(read(name), /由用户决定/);
+});
+
+test('实施主人点名 grilling 与 implement', () => {
+  for (const name of ['k-feat', 'k-issue', 'k-refactor', 'k-roadmap']) {
+    assert.match(read(name), /k-grilling/);
+    assert.match(read(name), /k-implement/);
+  }
 });

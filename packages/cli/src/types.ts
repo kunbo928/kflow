@@ -1,4 +1,4 @@
-export type WorkType = 'roadmap' | 'feat' | 'issue' | 'refactor' | 'research' | 'prototype' | 'architecture';
+export type WorkType = 'roadmap' | 'feat' | 'issue' | 'refactor' | 'research' | 'prototype';
 export type WorkStatus = 'proposed' | 'active' | 'blocked' | 'accepted' | 'cancelled' | 'superseded';
 
 export interface WorkMeta {

@@ -1,5 +1,11 @@
 # k-flow
 
+## 2.1.0
+
+### Minor Changes
+
+- 98b15ae: Align the published surface with the v3 loop: 14 product skills (add k-implement, k-grilling, k-author; remove k-architecture), drop the unused `--skill` flag, and stop creating lessons/attention on init.
+
 ## 2.0.1
 
 ### Patch Changes

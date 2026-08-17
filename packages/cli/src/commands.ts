@@ -2,16 +2,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { atomicWrite, gitBaseline } from './filesystem.js';
-import { findWorkDirs, readMarkdown, sectionValue, validateWork } from './harness.js';
+import { findWorkDirs, readMarkdown, roadmapProjection, sectionValue, validateWork } from './harness.js';
 import { stringifyYaml } from './yaml.js';
 import type { CommandResult, WorkMeta, WorkType } from './types.js';
 import { installSkills, selectTools, skillNames } from './agent-integrations.js';
 import { workTypeSet } from './skill-manifest.js';
+import { diag, envelope } from './types.js';
+import type { Diagnostic } from './types.js';
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const roots = ['works'];
 const legacyRoots = ['cursors', 'work', 'requirements', 'architecture', 'roadmap', 'features', 'issues', 'refactors', 'compound', 'reference', 'lessons'];
-const result = (command: string, changed: string[] = [], warnings: string[] = [], data: Record<string, unknown> = {}): CommandResult => ({ command, ok: true, changed, warnings, ...data });
+const errorDiags = (code: string, messages: string[], target?: string, fix?: string): Diagnostic[] => messages.map((message) => diag('error', code, message, { target, fix }));
+const FIX_INVALID_WORK = '补齐对应章节或 frontmatter 后重跑 kflow work validate';
 const specHeadings: Record<WorkType, string[]> = {
   feat: ['目标行为', '范围与非目标', '验收场景', '测试契约', '关键决策', '交付结果'],
   issue: ['故障症状', '期望行为', '复现条件', '根因', '回归契约', '交付结果'],
@@ -37,23 +40,22 @@ export function initProject(cwd: string, options: { tools?: string; copy?: boole
   if (!fs.existsSync(map)) { atomicWrite(map, '# Project Map\n\n## 项目边界\n\n待 `k-onboard` 根据仓库事实补全。\n\n## 上下文路由\n\n- 开发入口：待核实\n- 架构与模块：待核实\n- 规范：`AGENTS.md`\n'); changed.push('.kflow/project-map/index.md'); }
   ensureAgentsContract(cwd, changed);
   const tools = selectTools(cwd, options.tools); changed.push(...installSkills(packageRoot, cwd, tools, { copy: options.copy, force: options.force }));
-  const diagnosis = doctor(cwd); if (!diagnosis.ok) return { command: 'init', ok: false, changed, diagnosis };
-  return result('init', changed, diagnosis.legacy as string[], { projectRoot: cwd, tools: tools.map((tool) => tool.id), skillsRoot: '.agents/skills' });
+  const diagnosis = doctor(cwd);
+  if (!diagnosis.ok) return envelope('init', diagnosis.diagnostics, { changed });
+  return envelope('init', diagnosis.diagnostics, { changed, projectRoot: cwd, tools: tools.map((tool) => tool.id), skillsRoot: '.agents/skills' });
 }
 
 export function doctor(cwd: string, options: { fix?: boolean } = {}): CommandResult {
   if (options.fix) initProject(cwd);
-  const issues: Array<{ code: string; path: string }> = []; const base = path.join(cwd, '.kflow');
-  if (!fs.existsSync(base)) issues.push({ code: 'missing-root', path: '.kflow' });
-  for (const dir of roots) if (!fs.existsSync(path.join(base, dir))) issues.push({ code: 'missing-directory', path: `.kflow/${dir}` });
-  for (const file of ['project-map/index.md']) if (!fs.existsSync(path.join(base, file))) issues.push({ code: 'missing-asset', path: `.kflow/${file}` });
-  for (const name of skillNames) for (const asset of listFiles(path.join(packageRoot, 'skills', name))) if (!fs.existsSync(path.join(cwd, '.agents/skills', name, asset))) issues.push({ code: asset === 'SKILL.md' ? 'missing-skill' : 'missing-skill-asset', path: projectRelative(cwd, path.join(cwd, '.agents/skills', name, asset)) });
-  const invalid = findWorkDirs(base).map((dir) => ({ dir: path.relative(cwd, dir), errors: validateWork(dir) })).filter((entry) => entry.errors.length);
-  const legacy = [
-    ...legacyRoots.filter((dir) => fs.existsSync(path.join(base, dir))).map((dir) => `.kflow/${dir}/`),
-    ...(['attention.md'] as const).filter((file) => fs.existsSync(path.join(base, file))).map((file) => `.kflow/${file}`),
-  ];
-  return { command: 'doctor', ok: issues.length === 0 && invalid.length === 0, issues, invalid, legacy };
+  const diagnostics: Diagnostic[] = []; const base = path.join(cwd, '.kflow');
+  if (!fs.existsSync(base)) diagnostics.push(diag('error', 'missing_root', '缺少 .kflow 根目录', { target: '.kflow', fix: 'kflow init' }));
+  for (const dir of roots) if (!fs.existsSync(path.join(base, dir))) diagnostics.push(diag('error', 'missing_directory', `缺少目录：.kflow/${dir}`, { target: `.kflow/${dir}`, fix: 'kflow init' }));
+  for (const file of ['project-map/index.md']) if (!fs.existsSync(path.join(base, file))) diagnostics.push(diag('error', 'missing_asset', `缺少资产：.kflow/${file}`, { target: `.kflow/${file}`, fix: 'kflow init' }));
+  for (const name of skillNames) for (const asset of listFiles(path.join(packageRoot, 'skills', name))) if (!fs.existsSync(path.join(cwd, '.agents/skills', name, asset))) { const target = projectRelative(cwd, path.join(cwd, '.agents/skills', name, asset)); diagnostics.push(diag('error', asset === 'SKILL.md' ? 'missing_skill' : 'missing_skill_asset', `缺少 Skill 资产：${target}`, { target, fix: 'kflow init --force' })); }
+  for (const dir of findWorkDirs(base)) { const errors = validateWork(dir); const target = path.relative(cwd, dir); for (const message of errors) diagnostics.push(diag('error', 'invalid_work', message, { target, fix: FIX_INVALID_WORK })); }
+  for (const dir of legacyRoots.filter((entry) => fs.existsSync(path.join(base, entry)))) diagnostics.push(diag('warning', 'legacy_asset', `遗留资产（只报告不迁移）：.kflow/${dir}/`, { target: `.kflow/${dir}/` }));
+  for (const file of (['attention.md'] as const).filter((entry) => fs.existsSync(path.join(base, entry)))) diagnostics.push(diag('warning', 'legacy_asset', `遗留资产（只报告不迁移）：.kflow/${file}`, { target: `.kflow/${file}` }));
+  return envelope('doctor', diagnostics, {});
 }
 
 export function createWork(cwd: string, type: WorkType, slug: string, options: { summary?: string } = {}): CommandResult {
@@ -66,18 +68,20 @@ export function createWork(cwd: string, type: WorkType, slug: string, options: {
   const sections = specHeadings[type].map((heading) => heading === '交付结果' ? '## 交付结果\n\n### 实现\n\n### 验证\n\n### 审查\n\n### 上下文同步\n' : `## ${heading}\n`).join('\n');
   atomicWrite(path.join(dir, 'spec.md'), `---\n${stringifyYaml(base)}\n---\n\n# ${title}\n\n${sections}`);
   atomicWrite(path.join(dir, 'work.md'), `---\n${stringifyYaml(workMeta)}\n---\n\n# ${title} · 执行记录\n\n## 当前状态\n\n## 下一步\n\n## 验证证据\n\n## 审查\n\n## 上下文同步\n\n## 阻塞\n`);
-  return result('work create', [projectRelative(cwd, path.join(dir, 'spec.md')), projectRelative(cwd, path.join(dir, 'work.md'))], [], { path: projectRelative(cwd, dir) });
+  return envelope('work create', [], { changed: [projectRelative(cwd, path.join(dir, 'spec.md')), projectRelative(cwd, path.join(dir, 'work.md'))], path: projectRelative(cwd, dir) });
 }
 
 function resolveWork(cwd: string, value: string): string { const candidate = value.includes('/') ? value : path.join('.kflow', 'works', value); return path.resolve(cwd, candidate); }
 export function showWork(cwd: string, value: string): CommandResult {
-  const dir = resolveWork(cwd, value); if (!fs.existsSync(dir)) return { command: 'work show', ok: false, errors: [`找不到 Work：${path.relative(cwd, dir)}`] };
-  const errors = validateWork(dir); if (errors.length) return { command: 'work show', ok: false, errors, path: projectRelative(cwd, dir) };
+  const dir = resolveWork(cwd, value); if (!fs.existsSync(dir)) return envelope('work show', [diag('error', 'work_not_found', `找不到 Work：${path.relative(cwd, dir)}`, { target: path.relative(cwd, dir) })]);
+  const errors = validateWork(dir); if (errors.length) return envelope('work show', errorDiags('invalid_work', errors, path.relative(cwd, dir), FIX_INVALID_WORK), { path: projectRelative(cwd, dir) });
   const work = path.join(dir, 'work.md'); const source = fs.existsSync(work) ? work : path.join(dir, 'spec.md');
   const { meta, body } = readMarkdown(source);
-  return { command: 'work show', ok: true, path: projectRelative(cwd, dir), type: meta.type, status: meta.status, current: sectionValue(body, '当前状态'), next: sectionValue(body, '下一步'), blockedBy: sectionValue(body, '阻塞'), baseline: meta.baseline ?? null, graduated: !fs.existsSync(work) };
+  const data: Record<string, unknown> = { path: projectRelative(cwd, dir), type: meta.type, status: meta.status, current: sectionValue(body, '当前状态'), nextStep: sectionValue(body, '下一步'), blockedBy: sectionValue(body, '阻塞'), baseline: meta.baseline ?? null, graduated: !fs.existsSync(work) };
+  if (meta.type === 'roadmap') Object.assign(data, roadmapProjection(dir));
+  return envelope('work show', [], data);
 }
-export function validateOneWork(cwd: string, value: string): CommandResult { const dir = resolveWork(cwd, value); const errors = validateWork(dir); return { command: 'work validate', ok: errors.length === 0, path: projectRelative(cwd, dir), errors }; }
+export function validateOneWork(cwd: string, value: string): CommandResult { const dir = resolveWork(cwd, value); const errors = validateWork(dir); return envelope('work validate', errorDiags('invalid_work', errors, path.relative(cwd, dir), FIX_INVALID_WORK), { path: projectRelative(cwd, dir) }); }
 export function validateMap(cwd: string): CommandResult {
   const file = path.join(cwd, '.kflow/project-map/index.md');
   const errors: string[] = [];
@@ -93,8 +97,14 @@ export function validateMap(cwd: string): CommandResult {
       if (!fs.existsSync(path.join(cwd, pointer))) errors.push(`missing pointer: ${pointer}`);
     }
   }
-  return { command: 'map validate', ok: errors.length === 0, path: '.kflow/project-map/index.md', errors };
+  return envelope('map validate', errorDiags('invalid_map', errors, '.kflow/project-map/index.md', '补齐项目边界、上下文路由，并确保路由指针路径存在'), { path: '.kflow/project-map/index.md' });
 }
-export function status(cwd: string): CommandResult { const base = path.join(cwd, '.kflow'); const records = findWorkDirs(base).map((dir) => { const errors = validateWork(dir); let meta: Record<string, unknown> = {}; if (!errors.length) { const work = path.join(dir, 'work.md'); meta = readMarkdown(fs.existsSync(work) ? work : path.join(dir, 'spec.md')).meta; } return { path: projectRelative(cwd, dir), type: meta.type, status: meta.status, graduated: !fs.existsSync(path.join(dir, 'work.md')), errors }; }); const counts = { proposed: records.filter((x) => x.status === 'proposed').length, active: records.filter((x) => x.status === 'active').length, blocked: records.filter((x) => x.status === 'blocked').length, accepted: records.filter((x) => x.status === 'accepted').length, invalid: records.filter((x) => x.errors.length).length }; return { command: 'status', ok: counts.invalid === 0, counts, records }; }
+export function status(cwd: string): CommandResult {
+  const base = path.join(cwd, '.kflow');
+  const records = findWorkDirs(base).map((dir) => { const errors = validateWork(dir); let meta: Record<string, unknown> = {}; if (!errors.length) { const work = path.join(dir, 'work.md'); meta = readMarkdown(fs.existsSync(work) ? work : path.join(dir, 'spec.md')).meta; } return { path: projectRelative(cwd, dir), type: meta.type, status: meta.status, graduated: !fs.existsSync(path.join(dir, 'work.md')), diagnostics: errorDiags('invalid_work', errors, path.relative(cwd, dir), FIX_INVALID_WORK) }; });
+  const counts = { proposed: records.filter((x) => x.status === 'proposed').length, active: records.filter((x) => x.status === 'active').length, blocked: records.filter((x) => x.status === 'blocked').length, accepted: records.filter((x) => x.status === 'accepted').length, invalid: records.filter((x) => x.diagnostics.length).length };
+  const diagnostics = records.flatMap((record) => record.diagnostics);
+  return envelope('status', diagnostics, { counts, records });
+}
 function listFiles(root: string, relative = ''): string[] { if (!fs.existsSync(root)) return []; return fs.readdirSync(path.join(root, relative), { withFileTypes: true }).flatMap((entry) => { const next = path.join(relative, entry.name); return entry.isDirectory() ? listFiles(root, next) : [next]; }); }
 function projectRelative(cwd: string, target: string): string { return path.relative(cwd, target).split(path.sep).join('/'); }

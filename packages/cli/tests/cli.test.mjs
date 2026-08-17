@@ -28,6 +28,9 @@ function run(cwd, args, expect = 0) {
   return JSON.parse(result.stdout);
 }
 
+const msgs = (body) => body.diagnostics.map((d) => d.message).join('\n');
+const legacyTargets = (body) => body.diagnostics.filter((d) => d.code === 'legacy_asset').map((d) => d.target);
+
 test('init creates Project Map and Works state and installs product skills', () => {
   const cwd = tempProject(); const first = run(cwd, ['init', '--tools', 'codex,claude']);
   assert.equal(first.ok, true);
@@ -94,7 +97,7 @@ test('doctor reports old state as legacy without failing or rewriting it', () =>
   fs.writeFileSync(path.join(legacy, 'old-work.md'), 'historical content\n');
   const diagnosis = run(cwd, ['doctor']);
   assert.equal(diagnosis.ok, true);
-  assert.deepEqual(diagnosis.legacy, ['.kflow/work/', '.kflow/features/']);
+  assert.deepEqual(legacyTargets(diagnosis), ['.kflow/work/', '.kflow/features/']);
   assert.equal(fs.readFileSync(path.join(oldCursorRoot, 'old.md'), 'utf8'), 'historical cursor\n');
   assert.equal(fs.readFileSync(path.join(legacy, 'old-work.md'), 'utf8'), 'historical content\n');
 });
@@ -119,7 +122,8 @@ test('Work captures stable Spec and active recovery state and validates', () => 
   const shown = run(cwd, ['work', 'show', 'feat-export-csv']);
   assert.equal(shown.type, 'feat');
   assert.equal(shown.status, 'proposed');
-  assert.equal(shown.next, '添加失败测试。');
+  assert.equal(shown.nextStep, '添加失败测试。');
+  assert.equal('next' in shown, false);
   assert.deepEqual(shown.blockedBy, null);
 });
 
@@ -141,12 +145,12 @@ test('Roadmap 校验 Feature 文件名、契约、依赖和环', () => {
   fs.writeFileSync(path.join(feats, '01-cart.md'), `---\nid: FEAT-01\nstatus: proposed\ndepends_on: [FEAT-02]\n---\n\n# 购物车\n\n## 目标行为\n\n## 范围与非目标\n\n## 验收场景\n\n## 测试契约\n\n## 关键决策\n\n## 交付结果\n`);
   fs.writeFileSync(path.join(feats, '02-order.md'), `---\nid: FEAT-02\nstatus: proposed\ndepends_on: [FEAT-01]\n---\n\n# 下单\n\n## 目标行为\n\n## 范围与非目标\n\n## 验收场景\n\n## 测试契约\n\n## 关键决策\n\n## 交付结果\n`);
   let validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /Feat 依赖存在环/);
+  assert.match(msgs(validation), /Feat 依赖存在环/);
   fs.writeFileSync(path.join(feats, '02-order.md'), fs.readFileSync(path.join(feats, '02-order.md'), 'utf8').replace('depends_on: [FEAT-01]', 'depends_on: []'));
   assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);
   fs.renameSync(path.join(feats, '02-order.md'), path.join(feats, 'order.md'));
   validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /Feat 文件名无效/);
+  assert.match(msgs(validation), /Feat 文件名无效/);
 });
 
 test('accepted Roadmap 拒绝空 Feature、非法状态和未完成子项', () => {
@@ -161,19 +165,19 @@ test('accepted Roadmap 拒绝空 Feature、非法状态和未完成子项', () =
     .replace('### 实现\n', '### 实现\n完成。\n').replace('### 验证\n', '### 验证\n通过。\n').replace('### 审查\n', '### 审查\n通过。\n').replace('### 上下文同步\n', '### 上下文同步\n无需。\n');
   fs.writeFileSync(path.join(root, 'spec.md'), spec);
   let validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /至少需要一个 Feature/);
+  assert.match(msgs(validation), /至少需要一个 Feature/);
   const feat = path.join(root, 'feats/01-one.md');
   const body = `\n---\n\n# 一\n\n## 目标行为\n\n## 范围与非目标\n\n## 验收场景\n\n## 测试契约\n\n## 关键决策\n\n## 交付结果\n`;
   fs.writeFileSync(feat, `---\nid: FEAT-01\nstatus: typo\ndepends_on: []${body}`);
   validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /status 无效/);
+  assert.match(msgs(validation), /status 无效/);
   fs.writeFileSync(feat, fs.readFileSync(feat, 'utf8').replace('status: typo', 'status: proposed'));
   validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /必须全部 accepted/);
+  assert.match(msgs(validation), /必须全部 accepted/);
   fs.writeFileSync(feat, fs.readFileSync(feat, 'utf8').replace('status: proposed', 'status: accepted'));
   validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /01-one.md 的“目标行为”章节不能为空/);
-  assert.match(validation.errors.join('\n'), /01-one.md“交付结果\/实现”不能为空/);
+  assert.match(msgs(validation), /01-one.md 的“目标行为”章节不能为空/);
+  assert.match(msgs(validation), /01-one.md“交付结果\/实现”不能为空/);
 });
 
 test('accepted Work 必须保留验证、审查和上下文同步证据', () => {
@@ -190,7 +194,7 @@ test('accepted Work 必须保留验证、审查和上下文同步证据', () => 
     .replace('## 验收场景\n', '## 验收场景\n下载成功。\n')
     .replace('## 测试契约\n', '## 测试契约\nnpm test。\n'));
   let validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /spec.md“交付结果\/实现”不能为空/);
+  assert.match(msgs(validation), /spec.md“交付结果\/实现”不能为空/);
   const work = path.join(cwd, created.path, 'work.md');
   const filled = fs.readFileSync(work, 'utf8')
     .replace('## 验证证据\n', '## 验证证据\n目标测试通过。\n')
@@ -213,7 +217,7 @@ test('Work 目录名必须与 type 一致', () => {
   const wrong = path.join(cwd, '.kflow/works/issue-rename-check');
   fs.renameSync(path.join(cwd, created.path), wrong);
   const validation = run(cwd, ['work', 'validate', '.kflow/works/issue-rename-check'], 1);
-  assert.match(validation.errors.join('\n'), /目录名必须与 type 一致/);
+  assert.match(msgs(validation), /目录名必须与 type 一致/);
 });
 
 test('--skill is rejected as an unknown option', () => {
@@ -233,14 +237,14 @@ test('work create rejects architecture and leftover lessons do not fail doctor',
   fs.mkdirSync(path.join(cwd, '.kflow/lessons'));
   const diagnosis = run(cwd, ['doctor']);
   assert.equal(diagnosis.ok, true);
-  assert.ok(diagnosis.legacy.includes('.kflow/lessons/'));
-  assert.ok(diagnosis.legacy.includes('.kflow/attention.md'));
+  assert.ok(legacyTargets(diagnosis).includes('.kflow/lessons/'));
+  assert.ok(legacyTargets(diagnosis).includes('.kflow/attention.md'));
   fs.writeFileSync(path.join(cwd, '.kflow/attention.md'), '# leftover custom\n');
   const fixed = run(cwd, ['doctor', '--fix']);
   assert.equal(fixed.ok, true);
   assert.equal(fs.readFileSync(path.join(cwd, '.kflow/attention.md'), 'utf8'), '# leftover custom\n');
   assert.ok(fs.existsSync(path.join(cwd, '.kflow/lessons')));
-  assert.ok(fixed.legacy.includes('.kflow/attention.md'));
+  assert.ok(legacyTargets(fixed).includes('.kflow/attention.md'));
 });
 
 test('init installs referenced Skill assets and doctor reports missing assets', () => {
@@ -251,7 +255,7 @@ test('init installs referenced Skill assets and doctor reports missing assets', 
   assert.ok(fs.existsSync(wayfinding));
   fs.rmSync(diagnose);
   const diagnosis = run(cwd, ['doctor'], 1);
-  assert.deepEqual(diagnosis.issues, [{ code: 'missing-skill-asset', path: '.agents/skills/k-issue/references/diagnose.md' }]);
+  assert.deepEqual(diagnosis.diagnostics.filter((d) => d.severity === 'error').map((d) => ({ code: d.code, target: d.target })), [{ code: 'missing_skill_asset', target: '.agents/skills/k-issue/references/diagnose.md' }]);
   assert.equal(run(cwd, ['init', '--tools', 'none', '--force']).ok, true);
   assert.ok(fs.existsSync(diagnose));
 });
@@ -271,12 +275,12 @@ test('Work rejects invalid types and blocked Work requires a reason', () => {
   fs.writeFileSync(file, text);
   fs.writeFileSync(path.join(cwd, created.path, 'spec.md'), fs.readFileSync(path.join(cwd, created.path, 'spec.md'), 'utf8').replace('status: proposed', 'status: blocked'));
   let validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /blocked Work 的“阻塞”章节不能为空/);
+  assert.match(msgs(validation), /blocked Work 的“阻塞”章节不能为空/);
   fs.writeFileSync(file, text.replace('## 阻塞\n', '## 阻塞\n缺少测试服务；服务恢复后重试。\n'));
   assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);
   fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('## 下一步', '## Removed'));
   validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /缺少章节：下一步/);
+  assert.match(msgs(validation), /缺少章节：下一步/);
 });
 
 test('active and accepted Works require Spec Clear body and review shape', () => {
@@ -286,7 +290,7 @@ test('active and accepted Works require Spec Clear body and review shape', () =>
     fs.writeFileSync(path.join(cwd, created.path, name), fs.readFileSync(path.join(cwd, created.path, name), 'utf8').replace('status: proposed', 'status: active'));
   }
   let validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /spec.md 的“目标行为”章节不能为空/);
+  assert.match(msgs(validation), /spec.md 的“目标行为”章节不能为空/);
   const spec = path.join(cwd, created.path, 'spec.md');
   fs.writeFileSync(spec, fs.readFileSync(spec, 'utf8')
     .replace('## 目标行为\n', '## 目标行为\n导出 CSV。\n')
@@ -300,17 +304,17 @@ test('active and accepted Works require Spec Clear body and review shape', () =>
   fs.writeFileSync(spec, fs.readFileSync(spec, 'utf8')
     .replace('### 实现\n', '### 实现\n已实现。\n').replace('### 验证\n', '### 验证\n通过。\n').replace('### 审查\n', '### 审查\n通过。\n').replace('### 上下文同步\n', '### 上下文同步\n无需。\n'));
   validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /“验证证据”不能为空/);
+  assert.match(msgs(validation), /“验证证据”不能为空/);
   const work = path.join(cwd, created.path, 'work.md');
   fs.writeFileSync(work, fs.readFileSync(work, 'utf8').replace('## 验证证据\n', '## 验证证据\nnpm test 通过。\n'));
   validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /必须包含 base 与 head/);
+  assert.match(msgs(validation), /必须包含 base 与 head/);
   fs.writeFileSync(work, fs.readFileSync(work, 'utf8').replace('## 审查\n', '## 审查\nbase: 1111111111111111111111111111111111111111\nhead: 2222222222222222222222222222222222222222\n'));
   validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /review_passed 或 risk_accepted/);
+  assert.match(msgs(validation), /review_passed 或 risk_accepted/);
   fs.writeFileSync(work, fs.readFileSync(work, 'utf8').replace('## 审查\n', '## 审查\nbase: 1111111111111111111111111111111111111111\nhead: 2222222222222222222222222222222222222222\nreview_passed\n- [ ] blocking leftover\n'));
   validation = run(cwd, ['work', 'validate', created.path], 1);
-  assert.match(validation.errors.join('\n'), /未解决的 blocking 或 important/);
+  assert.match(msgs(validation), /未解决的 blocking 或 important/);
   fs.writeFileSync(work, fs.readFileSync(work, 'utf8').replace('- [ ] blocking leftover\n', '- [ ] nit leftover\n'));
   assert.equal(run(cwd, ['work', 'validate', created.path]).ok, true);
 
@@ -319,7 +323,7 @@ test('active and accepted Works require Spec Clear body and review shape', () =>
     fs.writeFileSync(path.join(cwd, research.path, name), fs.readFileSync(path.join(cwd, research.path, name), 'utf8').replace('status: proposed', 'status: active'));
   }
   validation = run(cwd, ['work', 'validate', research.path], 1);
-  assert.match(validation.errors.join('\n'), /spec.md 的“研究问题”章节不能为空/);
+  assert.match(msgs(validation), /spec.md 的“研究问题”章节不能为空/);
   fs.writeFileSync(path.join(cwd, research.path, 'spec.md'), fs.readFileSync(path.join(cwd, research.path, 'spec.md'), 'utf8')
     .replace('## 研究问题\n', '## 研究问题\n缓存归谁。\n')
     .replace('## 范围与证据标准\n', '## 范围与证据标准\n源码与测试。\n'));
@@ -330,7 +334,7 @@ test('active and accepted Works require Spec Clear body and review shape', () =>
     fs.writeFileSync(path.join(cwd, prototype.path, name), fs.readFileSync(path.join(cwd, prototype.path, name), 'utf8').replace('status: proposed', 'status: active'));
   }
   validation = run(cwd, ['work', 'validate', prototype.path], 1);
-  assert.match(validation.errors.join('\n'), /spec.md 的“决策问题”章节不能为空/);
+  assert.match(msgs(validation), /spec.md 的“决策问题”章节不能为空/);
   fs.writeFileSync(path.join(cwd, prototype.path, 'spec.md'), fs.readFileSync(path.join(cwd, prototype.path, 'spec.md'), 'utf8')
     .replace('## 决策问题\n', '## 决策问题\n编辑器状态是否可操作。\n')
     .replace('## 待验证假设\n', '## 待验证假设\n单页可走完主路径。\n')
@@ -343,7 +347,7 @@ test('active and accepted Works require Spec Clear body and review shape', () =>
   }
   fs.writeFileSync(path.join(cwd, roadmap.path, 'spec.md'), fs.readFileSync(path.join(cwd, roadmap.path, 'spec.md'), 'utf8').replace('## Feature 索引\n', '## Feature 索引\n尚未创建。\n'));
   validation = run(cwd, ['work', 'validate', roadmap.path], 1);
-  assert.match(validation.errors.join('\n'), /spec.md 的“目的地”章节不能为空/);
+  assert.match(msgs(validation), /spec.md 的“目的地”章节不能为空/);
   fs.writeFileSync(path.join(cwd, roadmap.path, 'spec.md'), fs.readFileSync(path.join(cwd, roadmap.path, 'spec.md'), 'utf8')
     .replace('## 目的地\n', '## 目的地\n完成迁移。\n')
     .replace('## 范围与非目标\n', '## 范围与非目标\n只改支付。\n')
@@ -357,7 +361,7 @@ test('map validate requires context-route pointers to exist', () => {
   const map = path.join(cwd, '.kflow/project-map/index.md');
   fs.writeFileSync(map, fs.readFileSync(map, 'utf8').replace('`AGENTS.md`', '`AGENTS.md`\n- 缺失：`docs/missing-owner.md`'));
   const failed = run(cwd, ['map', 'validate'], 1);
-  assert.match(failed.errors.join('\n'), /docs\/missing-owner\.md/);
+  assert.match(msgs(failed), /docs\/missing-owner\.md/);
 });
 
 test('document search and validation remain path-neutral utilities', () => {

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseYaml } from './yaml.js';
+import { diag, envelope } from './types.js';
 import type { CommandResult } from './types.js';
 
 interface DocumentRecord {
@@ -45,15 +46,15 @@ function matchesFilter(record: DocumentRecord, expression: string): boolean {
 
 export function searchDocuments(cwd: string, options: { dir: string; filters?: string[]; query?: string; sortBy?: string; order?: string; full?: boolean }): CommandResult {
   const root = path.resolve(cwd, options.dir);
-  if (!fs.existsSync(root)) return { command: 'document search', ok: false, errors: [`Path does not exist: ${options.dir}`] };
+  if (!fs.existsSync(root)) return envelope('document search', [diag('error', 'path_not_found', `Path does not exist: ${options.dir}`, { target: options.dir })]);
   let records: DocumentRecord[] = [];
-  const errors: Array<{ file: string; error: string }> = [];
+  const parseWarnings: Array<{ file: string; error: string }> = [];
   for (const file of markdownFiles(root)) {
     try {
       const record = readDocument(file);
       if ((options.filters ?? []).every((filter) => matchesFilter(record, filter)) && (!options.query || `${JSON.stringify(record.frontmatter)}\n${record.body}`.toLowerCase().includes(options.query.toLowerCase()))) records.push(record);
     } catch (error) {
-      errors.push({ file: path.relative(cwd, file), error: error instanceof Error ? error.message : String(error) });
+      parseWarnings.push({ file: path.relative(cwd, file), error: error instanceof Error ? error.message : String(error) });
     }
   }
   if (options.sortBy) {
@@ -66,25 +67,24 @@ export function searchDocuments(cwd: string, options: { dir: string; filters?: s
       return String(a).localeCompare(String(b)) * direction;
     });
   }
-  return {
-    command: 'document search', ok: true,
+  const diagnostics = parseWarnings.map((entry) => diag('warning', 'unreadable_document', entry.error, { target: entry.file }));
+  return envelope('document search', diagnostics, {
     count: records.length,
     results: records.map((record) => ({ file: path.relative(cwd, record.file), frontmatter: record.frontmatter, ...(options.full ? { body: record.body } : {}) })),
-    warnings: errors,
-  };
+  });
 }
 
 export function validateDocuments(cwd: string, options: { file?: string; dir?: string; required?: string[]; yamlOnly?: boolean }): CommandResult {
   const target = path.resolve(cwd, options.file ?? options.dir!);
-  if (!fs.existsSync(target)) return { command: 'document validate', ok: false, errors: [`Path does not exist: ${options.file ?? options.dir}`] };
-  const errors: Array<{ file: string; errors: string[] }> = [];
-  for (const file of markdownFiles(target)) {
-    const fileErrors: string[] = [];
+  if (!fs.existsSync(target)) return envelope('document validate', [diag('error', 'path_not_found', `Path does not exist: ${options.file ?? options.dir}`, { target: options.file ?? options.dir })]);
+  const files = markdownFiles(target);
+  const diagnostics = [] as ReturnType<typeof diag>[];
+  for (const file of files) {
+    const relative = path.relative(cwd, file);
     try {
       const record = readDocument(file, options.yamlOnly);
-      for (const key of options.required ?? []) if (!(key in record.frontmatter)) fileErrors.push(`missing field: ${key}`);
-    } catch (error) { fileErrors.push(error instanceof Error ? error.message : String(error)); }
-    if (fileErrors.length) errors.push({ file: path.relative(cwd, file), errors: fileErrors });
+      for (const key of options.required ?? []) if (!(key in record.frontmatter)) diagnostics.push(diag('error', 'missing_field', `missing field: ${key}`, { target: relative, fix: `add "${key}" to frontmatter` }));
+    } catch (error) { diagnostics.push(diag('error', 'unreadable_document', error instanceof Error ? error.message : String(error), { target: relative })); }
   }
-  return { command: 'document validate', ok: errors.length === 0, checked: markdownFiles(target).length, invalid: errors };
+  return envelope('document validate', diagnostics, { checked: files.length });
 }

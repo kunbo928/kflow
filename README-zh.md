@@ -124,7 +124,7 @@ kflow document validate --file docs/adr/001.md --require status
 - `map validate` 检查地图章节与指针路径存在。
 - `document` 查询或校验项目已有文档，不创建平行文档系统。
 
-CLI 强制形状、非空和路径存在。不跑测试、不判拷问、不核验「reviewer 是不是实施者」。
+CLI 强制形状、非空和路径存在。`--json` 输出版本化 envelope（`schemaVersion`、`ok`、`diagnostics[]`）。`work show` 对 roadmap 额外投影 `frontier` / `blocked` / `next`。不跑测试、不判拷问、不核验「reviewer 是不是实施者」。
 
 ## 项目中会增加什么
 

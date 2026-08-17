@@ -95,6 +95,13 @@ async function createSearchableMultiSelect() {
   });
 }
 
+export function isInteractiveCancel(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const name = 'name' in error ? String((error as { name?: unknown }).name) : '';
+  const message = error instanceof Error ? error.message : String(error);
+  return name === 'ExitPromptError' || /force closed the prompt/i.test(message);
+}
+
 export async function selectAgentsInteractively(choices: AgentChoice[]): Promise<string[]> {
   const prompt = await createSearchableMultiSelect();
   return prompt({ message: `Select Agent tools to set up (${choices.length} available)`, choices, pageSize: 15, validate: (ids) => ids.length > 0 || 'Select at least one Agent tool' });

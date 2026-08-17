@@ -110,7 +110,7 @@ kflow document search --dir docs --query "cache"
 kflow document validate --file docs/adr/001.md --require status
 ```
 
-The CLI enforces shape, non-empty contract sections, and that map pointers exist. It does not run tests, score grilling, or judge whether the reviewer was the implementer.
+The CLI enforces shape, non-empty contract sections, and that map pointers exist. `--json` prints one versioned envelope (`schemaVersion`, `ok`, `diagnostics[]`). `work show` on a roadmap also projects `frontier`, `blocked`, and `next`. It does not run tests, score grilling, or judge whether the reviewer was the implementer.
 
 ## What it adds to a project
 

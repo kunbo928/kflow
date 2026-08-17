@@ -103,7 +103,7 @@ Research、Prototype 可以是独立 Work，也可以是既有 Roadmap 的内部
 
 ## CLI 边界
 
-CLI 强制形状、非空、路径存在。不跑测试、不判拷问、不评 finding 对错、不核验「reviewer 是不是实施者」。
+CLI 强制形状、非空、路径存在。`--json` 输出版本化 envelope（`schemaVersion`、`ok`、`diagnostics[]`）。只读派生投影（如 roadmap 的 frontier / blocked / next）属形状范畴，不算语义判断。不跑测试、不判拷问、不评 finding 对错、不核验「reviewer 是不是实施者」。
 
 ```text
 kflow init
@@ -118,6 +118,7 @@ kflow document search|validate
 
 - `init`：建 `works/` 与 `project-map/index.md`；缺则写最小 `AGENTS.md`；安装产品 `k-*`（含 implement / grilling / author）。不建 `lessons/`、`attention.md`。
 - `doctor`：查上述资产与每个产品 Skill 的 `SKILL.md`、`references/`；校验全部 Work。遗留 `lessons/`、`attention.md` 只报告不失败。`--fix` 不得重建它们。
+- `work show`：对 roadmap 只读派生 `frontier` / `blocked` / `next`（`depends_on` 全部 accepted 的 proposed feat；同层按 feat 文件名顺序）。「下一步」在 `nextStep`，与投影 `next` 分开。
 - `work validate`：`active`/`accepted` 时 Spec Clear 章节必须有正文。`accepted` 时「验证证据」与「交付结果」四小节非空；审查节含 base/head，终态为 `review_passed` 或 `risk_accepted`，且无未勾掉的 blocking/important 标记。
 - `map validate`：`index.md` 有「项目边界」「上下文路由」；路由表里的仓库相对路径必须存在。不跑校验命令。
 - `document *`：通用 frontmatter 工具，不是闭环步骤。无 `--skill`。

@@ -25,8 +25,11 @@ function usage(): never { throw new Error(`Usage:
 
 function print(result: CommandResult, json: boolean): void {
   if (json) console.log(JSON.stringify(result, null, 2));
-  else if (result.ok) { console.log(`PASS ${result.command}`); if (Array.isArray(result.changed)) for (const file of result.changed) console.log(`  changed ${file}`); if (result.path) console.log(`  ${result.path}`); if (result.counts) console.log(JSON.stringify(result.counts, null, 2)); }
-  else { console.log(`FAIL ${result.command}`); for (const entry of (result.errors as string[] | undefined) ?? []) console.log(`  - ${entry}`); for (const entry of (result.issues as Array<{ code: string; path: string }> | undefined) ?? []) console.log(`  - ${entry.code}: ${entry.path}`); }
+  else {
+    console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.command}`);
+    if (result.ok) { if (Array.isArray(result.changed)) for (const file of result.changed) console.log(`  changed ${file}`); if (result.path) console.log(`  ${result.path}`); if (result.counts) console.log(JSON.stringify(result.counts, null, 2)); }
+    else for (const entry of result.diagnostics) console.log(`  - ${entry.code}: ${entry.message}${entry.target ? ` (${entry.target})` : ''}`);
+  }
   if (!result.ok) process.exitCode = 1;
 }
 

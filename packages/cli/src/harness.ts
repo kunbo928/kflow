@@ -65,25 +65,46 @@ function validateAcceptedSpec(body: string, errors: string[], owner = 'accepted 
   for (const field of resultFields) if (!subsectionValue(body, field)) errors.push(`${owner}“交付结果/${field}”不能为空`);
 }
 
-function validateRoadmapFeats(dir: string, parentStatus: unknown, errors: string[]): void {
+interface FeatFile {
+  file: string;
+  id: string;
+  depends: string[];
+  dependsValid: boolean;
+  status: string;
+  body: string;
+  parseError?: string;
+}
+
+function loadFeatFiles(dir: string): FeatFile[] | null {
   const feats = path.join(dir, 'feats');
-  if (!fs.existsSync(feats)) { errors.push('Roadmap 缺少 feats/'); return; }
-  const files = fs.readdirSync(feats, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith('.md'));
-  const ids = new Set<string>(); const records: Array<{ file: string; id: string; depends: string[]; status: unknown }> = [];
-  for (const entry of files) {
-    if (!/^\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/.test(entry.name)) errors.push(`Feat 文件名无效：${entry.name}`);
+  if (!fs.existsSync(feats)) return null;
+  const files = fs.readdirSync(feats, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith('.md')).sort((a, b) => a.name.localeCompare(b.name));
+  return files.map((entry) => {
     try {
       const { meta, body } = readMarkdown(path.join(feats, entry.name));
-      const id = typeof meta.id === 'string' ? meta.id : '';
-      if (!/^FEAT-\d{2}$/.test(id)) errors.push(`${entry.name} 的 id 必须是 FEAT-NN`);
-      if (ids.has(id)) errors.push(`重复 Feat id：${id}`); else if (id) ids.add(id);
-      if (!['proposed', 'active', 'blocked', 'accepted', 'cancelled', 'superseded'].includes(String(meta.status))) errors.push(`${entry.name} 的 status 无效`);
-      if (!Array.isArray(meta.depends_on) || meta.depends_on.some((item) => typeof item !== 'string')) errors.push(`${entry.name} 的 depends_on 必须是列表`);
-      requireSections(body, ['目标行为', '范围与非目标', '验收场景', '测试契约', '关键决策', '交付结果'], errors, `${entry.name} `);
-      if (['active', 'accepted'].includes(String(meta.status))) for (const heading of specClearHeadings.feat ?? []) if (!sectionValue(body, heading)) errors.push(`${entry.name} 的“${heading}”章节不能为空`);
-      if (meta.status === 'accepted') validateAcceptedSpec(body, errors, entry.name);
-      records.push({ file: entry.name, id, depends: Array.isArray(meta.depends_on) ? meta.depends_on as string[] : [], status: meta.status });
-    } catch (error) { errors.push(`${entry.name}：${error instanceof Error ? error.message : String(error)}`); }
+      const dependsValid = Array.isArray(meta.depends_on) && meta.depends_on.every((item) => typeof item === 'string');
+      return { file: entry.name, id: typeof meta.id === 'string' ? meta.id : '', depends: dependsValid ? meta.depends_on as string[] : [], dependsValid, status: String(meta.status ?? ''), body };
+    } catch (error) {
+      return { file: entry.name, id: '', depends: [], dependsValid: false, status: '', body: '', parseError: error instanceof Error ? error.message : String(error) };
+    }
+  });
+}
+
+function validateRoadmapFeats(dir: string, parentStatus: unknown, errors: string[]): void {
+  const loaded = loadFeatFiles(dir);
+  if (!loaded) { errors.push('Roadmap 缺少 feats/'); return; }
+  const ids = new Set<string>(); const records: Array<{ file: string; id: string; depends: string[]; status: string }> = [];
+  for (const entry of loaded) {
+    if (!/^\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/.test(entry.file)) errors.push(`Feat 文件名无效：${entry.file}`);
+    if (entry.parseError) { errors.push(`${entry.file}：${entry.parseError}`); continue; }
+    if (!/^FEAT-\d{2}$/.test(entry.id)) errors.push(`${entry.file} 的 id 必须是 FEAT-NN`);
+    if (ids.has(entry.id)) errors.push(`重复 Feat id：${entry.id}`); else if (entry.id) ids.add(entry.id);
+    if (!['proposed', 'active', 'blocked', 'accepted', 'cancelled', 'superseded'].includes(entry.status)) errors.push(`${entry.file} 的 status 无效`);
+    if (!entry.dependsValid) errors.push(`${entry.file} 的 depends_on 必须是列表`);
+    requireSections(entry.body, ['目标行为', '范围与非目标', '验收场景', '测试契约', '关键决策', '交付结果'], errors, `${entry.file} `);
+    if (['active', 'accepted'].includes(entry.status)) for (const heading of specClearHeadings.feat ?? []) if (!sectionValue(entry.body, heading)) errors.push(`${entry.file} 的“${heading}”章节不能为空`);
+    if (entry.status === 'accepted') validateAcceptedSpec(entry.body, errors, entry.file);
+    records.push({ file: entry.file, id: entry.id, depends: entry.depends, status: entry.status });
   }
   for (const record of records) for (const dependency of record.depends) if (!ids.has(dependency)) errors.push(`${record.file} 引用了不存在的依赖：${dependency}`);
   const visiting = new Set<string>(); const visited = new Set<string>(); const byId = new Map(records.map((record) => [record.id, record]));
@@ -95,6 +116,20 @@ function validateRoadmapFeats(dir: string, parentStatus: unknown, errors: string
   const indexed = new Set(index.match(/FEAT-\d{2}/g) ?? []);
   for (const id of ids) if (!indexed.has(id)) errors.push(`Feature 索引缺少：${id}`);
   for (const id of indexed) if (!ids.has(id)) errors.push(`Feature 索引包含不存在的 Feature：${id}`);
+}
+
+export interface RoadmapProjection { frontier: string[]; blocked: Array<{ id: string; missing: string[] }>; next: string | null; }
+
+export function roadmapProjection(dir: string): RoadmapProjection {
+  const records = (loadFeatFiles(dir) ?? []).filter((entry) => entry.id && !entry.parseError);
+  const statusById = new Map(records.map((record) => [record.id, record.status]));
+  const frontier: string[] = []; const blocked: Array<{ id: string; missing: string[] }> = [];
+  for (const record of records) {
+    if (record.status !== 'proposed') continue;
+    const missing = record.depends.filter((dependency) => statusById.get(dependency) !== 'accepted');
+    if (missing.length === 0) frontier.push(record.id); else blocked.push({ id: record.id, missing });
+  }
+  return { frontier, blocked, next: frontier[0] ?? null };
 }
 
 export function validateWork(dir: string): string[] {

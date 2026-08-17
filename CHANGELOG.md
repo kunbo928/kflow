@@ -1,5 +1,11 @@
 # k-flow
 
+## 2.2.0
+
+### Minor Changes
+
+- 6a0c0f4: Unify `--json` on a versioned diagnostic envelope and project roadmap `frontier` / `blocked` / `next` from feat dependencies.
+
 ## 2.1.0
 
 ### Minor Changes
